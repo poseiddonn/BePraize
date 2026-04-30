@@ -26,6 +26,7 @@ import {
   QrCode,
   Users,
   Edit,
+  Menu,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -1348,6 +1349,16 @@ function createClientTicketId(orderNumber: string, usedTicketIds: Set<string>) {
 
 export default function AdminPage() {
   const [tab, setTab] = useState<TabId>("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Handle responsive breakpoint
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // ── Data state ──
   const [events, setEvents] = useState<Event[]>([]);
@@ -2283,6 +2294,20 @@ export default function AdminPage() {
     >
       <style>{FONT_CSS}</style>
 
+      {/* Mobile overlay - closes sidebar on touch */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 40,
+            display: "block",
+          }}
+        />
+      )}
+
       {/* ── Sidebar ── */}
       <aside
         style={{
@@ -2292,9 +2317,12 @@ export default function AdminPage() {
           display: "flex",
           flexDirection: "column",
           flexShrink: 0,
-          position: "sticky",
+          position: isMobile ? "fixed" : "sticky",
+          left: isMobile ? (sidebarOpen ? 0 : -228) : "auto",
           top: 56,
           height: "calc(100vh - 56px)",
+          zIndex: 50,
+          transition: isMobile ? "left 0.3s ease" : "none",
         }}
       >
         <div
@@ -2360,7 +2388,38 @@ export default function AdminPage() {
       </aside>
 
       {/* ── Main ── */}
-      <main style={{ flex: 1, padding: "2rem 2.5rem", overflowY: "auto" }}>
+      <main
+        style={{
+          flex: 1,
+          padding: isMobile ? "1rem" : "2rem 2.5rem",
+          overflowY: "auto",
+        }}
+      >
+        {/* Mobile menu button - appears below header when sidebar is closed */}
+        {isMobile && !sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              width: "100%",
+              padding: "12px",
+              marginBottom: "16px",
+              background: C.card,
+              border: `1px solid ${C.cardBorder}`,
+              borderRadius: 8,
+              color: C.text,
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            <Menu size={20} />
+            <span>Menu</span>
+          </button>
+        )}
         {/* Error banner */}
         {error && (
           <div
@@ -3689,7 +3748,7 @@ export default function AdminPage() {
                       <div
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
+                          gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                           gap: "2rem",
                           maxWidth: "1200px",
                         }}
