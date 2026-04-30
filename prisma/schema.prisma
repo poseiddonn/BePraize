@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  date        DateTime
+  venue       String
+  status      EventStatus @default(UPCOMING)
+  totalTickets Int     @default(0)
+  ticketsSold  Int     @default(0)
+  price        Float   @default(0.00)
+  imageUrl     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tickets      Ticket[]
+  orders       Order[]
+
+  @@map("events")
+}
+
+model Ticket {
+  id          Int      @id @default(autoincrement())
+  eventId     Int
+  type        TicketType @default(GENERAL)
+  price       Float
+  available   Int     @default(0)
+  sold        Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event       Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  orderItems  OrderItem[]
+
+  @@map("tickets")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders    Order[]
+
+  @@map("users")
+}
+
+model Order {
+  id           Int         @id @default(autoincrement())
+  userId       Int
+  totalAmount  Float
+  status       OrderStatus @default(PENDING)
+  paymentId    String?
+  paymentMethod String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  user         User        @relation(fields: [userId], references: [id])
+  event        Event?      @relation(fields: [eventId], references: [id])
+  eventId      Int?
+  items        OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id       Int @id @default(autoincrement())
+  orderId  Int
+  ticketId Int
+  quantity Int
+  price    Float
+
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ticket   Ticket @relation(fields: [ticketId], references: [id])
+
+  @@map("order_items")
+}
+
+enum EventStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum TicketType {
+  GENERAL
+  VIP
+  PLATINUM
+  GOLD
+  SILVER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REFUNDED
+}

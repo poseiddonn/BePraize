@@ -1,0 +1,13 @@
+# Gmail SMTP Configuration for Nodemailer
+GMAIL_USER=your-email@gmail.com
+GMAIL_APP_PASSWORD=your-app-password
+
+# Stripe Configuration
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+# MongoDB (if using)
+MONGODB_URI=mongodb://localhost:27017/concert
+
+# Resend (if you want to keep as backup)
+RESEND_API_KEY=re_...
