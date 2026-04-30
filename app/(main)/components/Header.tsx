@@ -80,7 +80,6 @@ export default function Header() {
 
         setUpcomingEvent(nextEvent || null);
       } catch (error) {
-        console.error("Failed to fetch events:", error);
       } finally {
         setEventsLoading(false);
       }

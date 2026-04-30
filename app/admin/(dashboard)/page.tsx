@@ -1655,12 +1655,10 @@ export default function AdminPage() {
           setCurrentUserPermissions(data.permissions || []);
         } else {
           // API returned error - don't grant admin access
-          console.error("Failed to fetch user info:", response.status);
           setCurrentUserRole("user");
           setCurrentUserPermissions([]);
         }
-      } catch (error) {
-        console.error("Failed to fetch user info:", error);
+      } catch {
         // Default to no permissions on error
         setCurrentUserRole("user");
         setCurrentUserPermissions([]);
@@ -1855,15 +1853,10 @@ export default function AdminPage() {
   const loadTransactionDetails = async (orderId: string) => {
     setTransactionLoading(true);
     try {
-      console.log(`[Frontend] Fetching details for order: ${orderId}`);
-      console.log(`[Frontend] Order ID type:`, typeof orderId);
-      console.log(`[Frontend] Order ID length:`, orderId.length);
       const res = await fetch(`/api/orders/${orderId}`);
-      console.log(`Response status: ${res.status}`);
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        console.error("API Error:", errorData);
         throw Error(
           errorData.error ||
             `HTTP ${res.status}: Failed to fetch transaction details`,
@@ -1871,10 +1864,8 @@ export default function AdminPage() {
       }
 
       const orderData: DetailedOrder = await res.json();
-      console.log("Order data received:", orderData);
       setTransactionModal(orderData);
     } catch (error) {
-      console.error("Failed to load transaction details:", error);
       alert(
         `Failed to load transaction details: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
@@ -1910,14 +1901,6 @@ export default function AdminPage() {
         }),
       );
 
-      console.log("Resending tickets with data:", {
-        orderId: transactionModal.orderId,
-        mailOption: transactionModal.mailOption,
-        buyer: transactionModal.buyer,
-        attendeesCount: attendees.length,
-        attendees,
-      });
-
       const res = await fetch("/api/send-tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1937,12 +1920,10 @@ export default function AdminPage() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        console.error("Failed to resend tickets:", errorData);
         throw new Error(errorData.error || "Failed to resend tickets");
       }
 
       const result = await res.json();
-      console.log("Resend tickets result:", result);
 
       showNotification(
         "success",
@@ -1950,7 +1931,6 @@ export default function AdminPage() {
         `Tickets have been resent successfully! (${result.sent} tickets sent)`,
       );
     } catch (error) {
-      console.error("Failed to resend tickets:", error);
       showNotification(
         "error",
         "Failed to Send Tickets",
@@ -1994,8 +1974,7 @@ export default function AdminPage() {
           `Order status updated to ${newStatus}!`,
         );
       }
-    } catch (error) {
-      console.error("Failed to update order status:", error);
+    } catch {
       showNotification(
         "error",
         "Update Failed",
@@ -2072,7 +2051,6 @@ export default function AdminPage() {
         throw new Error("Operation failed");
       }
     } catch (error) {
-      console.error("Save user error:", error);
       showNotification(
         "error",
         "Save Failed",
@@ -2133,7 +2111,6 @@ export default function AdminPage() {
         throw new Error("Check-in failed");
       }
     } catch (error) {
-      console.error("Check-in error:", error);
       showNotification(
         "error",
         "Check-in Failed",
@@ -2225,7 +2202,6 @@ export default function AdminPage() {
       // Reload users list
       loadUsers();
     } catch (error) {
-      console.error("Delete user error:", error);
       showNotification(
         "error",
         "Delete Failed",

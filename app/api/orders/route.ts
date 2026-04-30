@@ -156,7 +156,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(order, { status: 201 });
   } catch (error) {
-    console.error("[POST /api/orders]", error);
     const errorMessage =
       error instanceof Error ? error.message : "Failed to process request";
     return NextResponse.json({ error: errorMessage }, { status: 500 });

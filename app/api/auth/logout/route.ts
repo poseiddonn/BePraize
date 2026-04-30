@@ -30,7 +30,6 @@ export async function POST() {
 
     return response;
   } catch (error) {
-    console.error("Logout error:", error);
     // Even if there's an error, try to clear cookies
     const response = NextResponse.json(
       { error: "Internal server error" },

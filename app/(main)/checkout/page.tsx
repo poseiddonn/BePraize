@@ -1183,12 +1183,10 @@ export default function CheckoutPage() {
 
       if (!sendTicketsRes.ok) {
         const errorData = await sendTicketsRes.json();
-        console.error("Failed to send tickets:", errorData);
         alert(
           `Warning: Tickets were not sent via email. Error: ${errorData.error || "Unknown error"}`,
         );
       } else {
-        console.log("Tickets sent successfully");
       }
 
       // Store order in session

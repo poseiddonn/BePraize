@@ -14,7 +14,6 @@ export function AdminHeaderClient() {
           setUsername(data.username || "Admin");
         }
       } catch (error) {
-        console.error("Failed to fetch user data:", error);
         // Keep default username if fetch fails
       }
     };
@@ -37,7 +36,6 @@ export function AdminHeaderClient() {
       // Force redirect to login page
       window.location.href = "/admin/login";
     } catch (error) {
-      console.error("Logout failed:", error);
       // Even if API fails, still redirect to login
       window.location.href = "/admin/login";
     }
@@ -68,7 +66,10 @@ export function AdminHeaderClient() {
           letterSpacing: "0.01em",
         }}
       >
-        Welcome, <span style={{ color: "#f59e0b", textTransform: "capitalize" }}>{username}</span>
+        Welcome,{" "}
+        <span style={{ color: "#f59e0b", textTransform: "capitalize" }}>
+          {username}
+        </span>
       </span>
 
       {/* Right — logout */}

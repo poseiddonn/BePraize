@@ -8,7 +8,6 @@ export async function GET() {
     const events = await EventModel.find().sort({ date: 1 }).lean();
     return NextResponse.json(events);
   } catch (err) {
-    console.error("[GET /api/events]", err);
     return NextResponse.json(
       { error: "Failed to fetch events" },
       { status: 500 },
@@ -23,7 +22,6 @@ export async function POST(req: Request) {
     const event = await EventModel.create(body);
     return NextResponse.json(event, { status: 201 });
   } catch (err) {
-    console.error("[POST /api/events]", err);
     return NextResponse.json(
       { error: "Failed to create event" },
       { status: 500 },

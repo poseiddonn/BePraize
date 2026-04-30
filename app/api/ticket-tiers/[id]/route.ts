@@ -23,7 +23,6 @@ export async function PUT(req: Request, { params }: Params) {
       );
     return NextResponse.json(updated);
   } catch (err) {
-    console.error("[PUT /api/ticket-tiers/:id]", err);
     return NextResponse.json(
       { error: "Failed to update ticket tier" },
       { status: 500 },
@@ -43,7 +42,6 @@ export async function DELETE(_req: Request, { params }: Params) {
       );
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("[DELETE /api/ticket-tiers/:id]", err);
     return NextResponse.json(
       { error: "Failed to delete ticket tier" },
       { status: 500 },

@@ -59,11 +59,16 @@ export async function GET(request: NextRequest) {
       if (!admin) {
         admin = await UserModel.findOne(
           { username: { $regex: new RegExp(`^${username}$`, "i") } },
-          { projection: { username: 1, email: 1, permissions: 1, isActive: 1 } },
+          {
+            projection: { username: 1, email: 1, permissions: 1, isActive: 1 },
+          },
         );
       }
     } else {
-      return NextResponse.json({ error: "No user session found" }, { status: 401 });
+      return NextResponse.json(
+        { error: "No user session found" },
+        { status: 401 },
+      );
     }
 
     if (!admin) {
@@ -74,10 +79,11 @@ export async function GET(request: NextRequest) {
       username: admin.username,
       email: admin.email,
       role: isAdminAccount ? "admin" : "user",
-      permissions: isAdminAccount ? [] : normalizePermissions(admin.permissions),
+      permissions: isAdminAccount
+        ? []
+        : normalizePermissions(admin.permissions),
     });
   } catch (error) {
-    console.error("[GET /api/auth/me]", error);
     return NextResponse.json(
       { error: "Failed to get user info" },
       { status: 500 },

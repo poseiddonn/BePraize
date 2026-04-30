@@ -10,24 +10,13 @@ export async function GET(
     await connectDB();
 
     const { orderId } = await params;
-    console.log(`[API] Looking for order with orderId: ${orderId}`);
 
     // First, let's see what orders exist
     const allOrders = await OrderModel.find().lean();
-    console.log(`[API] Found ${allOrders.length} orders in database`);
-    console.log(
-      `[API] Order IDs in database:`,
-      allOrders.map((o) => ({
-        _id: o._id,
-        orderId: o.orderId,
-        buyerName: o.buyer?.name || o.buyerName,
-      })),
-    );
 
     const order = await OrderModel.findOne({ orderId }).lean();
 
     if (!order) {
-      console.log(`[API] Order not found: ${orderId}`);
       return NextResponse.json(
         {
           error: "Order not found",
@@ -62,7 +51,6 @@ export async function GET(
     return NextResponse.json(detailedOrder);
   } catch (error) {
     const { orderId } = await params;
-    console.error(`[GET /api/orders/${orderId}]`, error);
     return NextResponse.json(
       { error: "Failed to fetch order details" },
       { status: 500 },
@@ -105,7 +93,6 @@ export async function PATCH(
     });
   } catch (error) {
     const { orderId } = await params;
-    console.error(`[PATCH /api/orders/${orderId}]`, error);
     return NextResponse.json(
       { error: "Failed to update order status" },
       { status: 500 },

@@ -15,7 +15,9 @@ export async function PUT(req: Request, { params }: Params) {
     const body = await req.json();
 
     // Fetch the existing coupon so we can detect a name change
-    const existing = await CouponModel.findById(id).lean() as { name: string } | null;
+    const existing = (await CouponModel.findById(id).lean()) as {
+      name: string;
+    } | null;
     if (!existing) {
       return NextResponse.json({ error: "Coupon not found" }, { status: 404 });
     }
@@ -40,7 +42,6 @@ export async function PUT(req: Request, { params }: Params) {
 
     return NextResponse.json(updated);
   } catch (err) {
-    console.error("[PUT /api/coupons/:id]", err);
     return NextResponse.json(
       { error: "Failed to update coupon" },
       { status: 500 },
@@ -61,7 +62,6 @@ export async function PATCH(_req: Request, { params }: Params) {
     await coupon.save();
     return NextResponse.json(coupon.toObject());
   } catch (err) {
-    console.error("[PATCH /api/coupons/:id]", err);
     return NextResponse.json(
       { error: "Failed to toggle coupon" },
       { status: 500 },
@@ -75,7 +75,9 @@ export async function DELETE(_req: Request, { params }: Params) {
     await connectDB();
 
     // Fetch name before deleting so we can clean up events
-    const existing = await CouponModel.findById(id).lean() as { name: string } | null;
+    const existing = (await CouponModel.findById(id).lean()) as {
+      name: string;
+    } | null;
     if (!existing) {
       return NextResponse.json({ error: "Coupon not found" }, { status: 404 });
     }
@@ -90,7 +92,6 @@ export async function DELETE(_req: Request, { params }: Params) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("[DELETE /api/coupons/:id]", err);
     return NextResponse.json(
       { error: "Failed to delete coupon" },
       { status: 500 },

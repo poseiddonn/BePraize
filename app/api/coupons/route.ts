@@ -8,7 +8,6 @@ export async function GET() {
     const coupons = await CouponModel.find().sort({ createdAt: -1 }).lean();
     return NextResponse.json(coupons);
   } catch (err) {
-    console.error("[GET /api/coupons]", err);
     return NextResponse.json(
       { error: "Failed to fetch coupons" },
       { status: 500 },
@@ -23,7 +22,6 @@ export async function POST(req: Request) {
     const coupon = await CouponModel.create(body);
     return NextResponse.json(coupon, { status: 201 });
   } catch (err) {
-    console.error("[POST /api/coupons]", err);
     return NextResponse.json(
       { error: "Failed to create coupon" },
       { status: 500 },

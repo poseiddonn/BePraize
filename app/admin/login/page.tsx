@@ -279,7 +279,6 @@ export default function LoginPage() {
       // On successful login, redirect to the intended page
       window.location.href = redirectTo;
     } catch (error) {
-      console.error("Login error:", error);
       setError("Invalid username or password");
     } finally {
       setLoading(false);

@@ -302,7 +302,6 @@ export default function HomePage() {
 
         setUpcomingEvent(nextEvent || null);
       } catch (error) {
-        console.error("Failed to fetch events:", error);
       } finally {
         setLoading(false);
       }

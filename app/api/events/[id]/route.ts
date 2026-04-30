@@ -20,7 +20,6 @@ export async function PUT(req: Request, { params }: Params) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     return NextResponse.json(updated);
   } catch (err) {
-    console.error("[PUT /api/events/:id]", err);
     return NextResponse.json(
       { error: "Failed to update event" },
       { status: 500 },
@@ -37,7 +36,6 @@ export async function DELETE(_req: Request, { params }: Params) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("[DELETE /api/events/:id]", err);
     return NextResponse.json(
       { error: "Failed to delete event" },
       { status: 500 },

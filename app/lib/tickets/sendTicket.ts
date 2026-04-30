@@ -211,14 +211,7 @@ export async function sendAllTickets(
     // Send to ALL attendees (including buyer if they are an attendee)
     for (const ticket of tickets) {
       if (ticket.attendeeEmail) {
-        promises.push(
-          sendTicketEmail(ticket).catch((err) => {
-            console.error(
-              `[sendAllTickets] Failed to send ticket to attendee ${ticket.attendeeEmail}:`,
-              err,
-            );
-          }),
-        );
+        promises.push(sendTicketEmail(ticket).catch(() => {}));
       }
     }
   } else if (mailOption === "both") {
@@ -226,14 +219,7 @@ export async function sendAllTickets(
     for (const ticket of tickets) {
       // Send to attendee if email is different from buyer
       if (ticket.attendeeEmail && ticket.attendeeEmail !== buyerEmail) {
-        promises.push(
-          sendTicketEmail(ticket).catch((err) => {
-            console.error(
-              `[sendAllTickets] Failed to send ticket to attendee ${ticket.attendeeEmail}:`,
-              err,
-            );
-          }),
-        );
+        promises.push(sendTicketEmail(ticket).catch(() => {}));
       }
     }
     // Send to buyer separately
@@ -243,12 +229,7 @@ export async function sendAllTickets(
           ...ticket,
           attendeeEmail: buyerEmail,
           // Preserve the original attendee name, don't override with buyer name
-        }).catch((err) => {
-          console.error(
-            `[sendAllTickets] Failed to send ticket to buyer ${buyerEmail}:`,
-            err,
-          );
-        }),
+        }).catch(() => {}),
       );
     }
   }
@@ -262,12 +243,7 @@ export async function sendAllTickets(
           ...ticket,
           attendeeEmail: buyerEmail,
           // Preserve the original attendee name, don't override with buyer name
-        }).catch((err) => {
-          console.error(
-            `[sendAllTickets] Failed to send ticket to buyer ${buyerEmail}:`,
-            err,
-          );
-        }),
+        }).catch(() => {}),
       );
     }
   }

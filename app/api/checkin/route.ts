@@ -24,10 +24,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { ticketId, orderId, signature, tier, eventId } = body;
 
-    console.log(
-      `[API Check-in] Received: ticketId=${ticketId}, orderId=${orderId}, eventId=${eventId}`,
-    );
-
     if (!ticketId || !orderId) {
       return NextResponse.json(
         { error: "Ticket ID and Order ID are required" },
@@ -36,9 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the order that contains this ticket
-    console.log(`[API Check-in] Looking for order with orderId: ${orderId}`);
     const order = await OrderModel.findOne({ orderId });
-    console.log(`[API Check-in] Order found:`, !!order);
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -130,7 +124,6 @@ export async function POST(request: NextRequest) {
       checkIn: checkInData,
     });
   } catch (error) {
-    console.error("[POST /api/checkin]", error);
     return NextResponse.json(
       { error: "Failed to process check-in" },
       { status: 500 },
@@ -182,7 +175,6 @@ export async function GET(request: NextRequest) {
       date: today.toISOString(),
     });
   } catch (error) {
-    console.error("[GET /api/checkin]", error);
     return NextResponse.json(
       { error: "Failed to fetch check-ins" },
       { status: 500 },
