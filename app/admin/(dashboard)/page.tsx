@@ -38,7 +38,8 @@ type TabId =
   | "coupons"
   | "transactions"
   | "checkin"
-  | "users";
+  | "users"
+  | "concluded";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -50,6 +51,7 @@ const NAV_ITEMS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "transactions", label: "Transactions", icon: ShoppingBag },
   { id: "checkin", label: "Check-in", icon: QrCode },
   { id: "users", label: "Users", icon: Users },
+  { id: "concluded", label: "Concluded Events", icon: BarChart3 },
 ];
 
 export type TransactionStatus = "success" | "failed" | "pending" | "refunded";
@@ -204,6 +206,45 @@ const FONT_CSS = `
   ::-webkit-scrollbar-thumb { background: ${C.faint}; border-radius: 4px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .spin { animation: spin 0.8s linear infinite; }
+
+  /* ── Responsive grid helpers ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .stat-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .section-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    gap: 12px;
+  }
+  .table-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tier-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+
+  @media (max-width: 767px) {
+    .stat-grid   { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    .stat-grid-2 { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    .section-header-row { flex-wrap: wrap; }
+    .section-header-row h2 { font-size: 18px !important; }
+    .tier-card-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .stat-grid   { grid-template-columns: 1fr; }
+    .stat-grid-2 { grid-template-columns: 1fr; }
+  }
 `;
 
 // ─── Shared Styles ────────────────────────────────────────────────────────────
@@ -518,14 +559,7 @@ interface SectionHeaderProps {
 
 function SectionHeader({ title, sub, action }: SectionHeaderProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-end",
-        marginBottom: 20,
-      }}
-    >
+    <div className="section-header-row">
       <div>
         <h2
           style={{
@@ -1454,6 +1488,18 @@ export default function AdminPage() {
     };
   } | null>(null);
 
+  // Concluded events stats modal state
+  const [concludedStatsModal, setConcludedStatsModal] = useState<{
+    event: Event;
+    stats: {
+      tiers: Array<{ name: string; sold: number }>;
+      totalOrders: number;
+      coupons: Array<{ name: string; usage: number }> | null;
+      totalCheckIns: number;
+      totalRevenue: number;
+    };
+  } | null>(null);
+
   // User form state
   const [userForm, setUserForm] = useState({
     username: "",
@@ -1598,6 +1644,106 @@ export default function AdminPage() {
         eventDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())
       );
     });
+  };
+
+  // Get concluded events (10+ hours after event start time)
+  const getConcludedEvents = (): Event[] => {
+    const now = new Date();
+    return events.filter((event) => {
+      if (!event.date || !event.time) return false;
+      const [year, month, day] = event.date.split("-").map(Number);
+      const [hours, minutes] = event.time.split(":").map(Number);
+      const eventDateTime = new Date(year, month - 1, day, hours, minutes);
+      const tenHoursAfter = new Date(
+        eventDateTime.getTime() + 10 * 60 * 60 * 1000,
+      );
+      return now >= tenHoursAfter;
+    });
+  };
+
+  // Calculate event statistics
+  const calculateEventStats = async (event: Event) => {
+    // Fetch detailed orders for this event
+    const eventOrders = transactions.filter((tx) => {
+      const orderEvent = tx.eventName === event.name;
+      return orderEvent && tx.status === "success";
+    });
+
+    // Fetch detailed order data to get tier and coupon information
+    const detailedOrders: DetailedOrder[] = [];
+    for (const order of eventOrders) {
+      try {
+        const res = await fetch(`/api/orders/${order.orderId}`);
+        if (res.ok) {
+          const detailedOrder = await res.json();
+          detailedOrders.push(detailedOrder);
+        }
+      } catch {
+        // Skip failed order fetches
+      }
+    }
+
+    // Calculate tier sales from detailed orders
+    const tierSales: Record<string, number> = {};
+    detailedOrders.forEach((order) => {
+      order.cart?.forEach((item) => {
+        if (item.tierName) {
+          tierSales[item.tierName] =
+            (tierSales[item.tierName] || 0) + (item.quantity || 1);
+        }
+      });
+    });
+
+    // Get actual tier data from the event with accurate sales
+    const tiers = event.ticketTierIds
+      .map((tierId) => {
+        const tier = ticketTiers.find((t) => t._id === tierId);
+        if (!tier) return null;
+        const sold = tierSales[tier.name] || 0;
+        return { name: tier.name, sold };
+      })
+      .filter((t): t is { name: string; sold: number } => t !== null);
+
+    // Calculate coupon usage from detailed orders
+    const couponUsage: Record<string, number> = {};
+    detailedOrders.forEach((order) => {
+      if (order.appliedCoupon?.name) {
+        couponUsage[order.appliedCoupon.name] =
+          (couponUsage[order.appliedCoupon.name] || 0) + 1;
+      }
+    });
+
+    const coupons =
+      event.coupons.length > 0
+        ? event.coupons.map((couponName) => ({
+            name: couponName,
+            usage: couponUsage[couponName] || 0,
+          }))
+        : null;
+
+    // Calculate total check-ins
+    const totalCheckIns = checkIns.filter(
+      (checkIn) => checkIn.eventName === event.name,
+    ).length;
+
+    // Calculate total revenue
+    const totalRevenue = eventOrders.reduce(
+      (sum, order) => sum + (order.total || 0),
+      0,
+    );
+
+    return {
+      tiers,
+      totalOrders: eventOrders.length,
+      coupons,
+      totalCheckIns,
+      totalRevenue,
+    };
+  };
+
+  const handleViewConcludedStats = async (event: Event) => {
+    const stats = await calculateEventStats(event);
+    setConcludedStatsModal({ event, stats });
   };
 
   const loadUsers = useCallback(async () => {
@@ -2244,6 +2390,7 @@ export default function AdminPage() {
               return hasPermission("transactions");
             if (item.id === "checkin") return hasPermission("checkin");
             if (item.id === "users") return hasPermission("users");
+            if (item.id === "concluded") return hasPermission("concluded");
             return false;
           }),
     [permissionsLoading, currentUserRole, hasPermission],
@@ -2328,7 +2475,7 @@ export default function AdminPage() {
             return (
               <div
                 key={id}
-                onClick={() => setTab(id)}
+                onClick={() => { setTab(id); if (isMobile) setSidebarOpen(false); }}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -2368,32 +2515,35 @@ export default function AdminPage() {
         style={{
           flex: 1,
           padding: isMobile ? "1rem" : "2rem 2.5rem",
+          paddingTop: isMobile ? "3.5rem" : "2rem",
           overflowY: "auto",
+          minWidth: 0,
         }}
       >
-        {/* Mobile menu button - appears below header when sidebar is closed */}
+        {/* Mobile sidebar toggle — icon only, below header */}
         {isMobile && !sidebarOpen && (
           <button
             onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
             style={{
+              position: "fixed",
+              top: 68,
+              left: 12,
+              zIndex: 45,
+              width: 38,
+              height: 38,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 8,
-              width: "100%",
-              padding: "12px",
-              marginBottom: "16px",
-              background: C.card,
+              background: C.sidebar,
               border: `1px solid ${C.cardBorder}`,
               borderRadius: 8,
-              color: C.text,
-              fontSize: 14,
-              fontWeight: 500,
+              color: C.accent,
               cursor: "pointer",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.5)",
             }}
           >
-            <Menu size={20} />
-            <span>Menu</span>
+            <Menu size={18} />
           </button>
         )}
         {/* Error banner */}
@@ -2459,12 +2609,7 @@ export default function AdminPage() {
                     Live Stats
                   </p>
                   <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(3, 1fr)",
-                      gap: 14,
-                      marginBottom: 32,
-                    }}
+                    className="stat-grid"
                   >
                     <StatCard
                       label="Total Events"
@@ -2502,12 +2647,7 @@ export default function AdminPage() {
                     Overview
                   </p>
                   <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(3, 1fr)",
-                      gap: 14,
-                      marginBottom: 32,
-                    }}
+                    className="stat-grid"
                   >
                     <StatCard
                       label="Total Coupons"
@@ -2554,12 +2694,7 @@ export default function AdminPage() {
                     Sales
                   </p>
                   <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(3, 1fr)",
-                      gap: 14,
-                      marginBottom: 32,
-                    }}
+                    className="stat-grid"
                   >
                     <StatCard
                       label="Total Orders"
@@ -2713,7 +2848,7 @@ export default function AdminPage() {
                       overflow: "hidden",
                     }}
                   >
-                    <div style={{ overflowX: "auto" }}>
+                    <div className="table-scroll-wrap">
                       <table
                         style={{ width: "100%", borderCollapse: "collapse" }}
                       >
@@ -2969,14 +3104,7 @@ export default function AdminPage() {
                       </Btn>
                     }
                   />
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "repeat(auto-fill, minmax(260px, 1fr))",
-                      gap: 14,
-                    }}
-                  >
+                  <div className="tier-card-grid">
                     {ticketTiers.map((tt) => (
                       <div
                         key={tt._id}
@@ -3126,6 +3254,7 @@ export default function AdminPage() {
                       overflow: "hidden",
                     }}
                   >
+                    <div className="table-scroll-wrap">
                     <table
                       style={{ width: "100%", borderCollapse: "collapse" }}
                     >
@@ -3258,6 +3387,7 @@ export default function AdminPage() {
                         )}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 </div>
               )}
@@ -3315,7 +3445,7 @@ export default function AdminPage() {
                         overflow: "hidden",
                       }}
                     >
-                      <div style={{ overflowX: "auto" }}>
+                      <div className="table-scroll-wrap">
                         <table
                           style={{ width: "100%", borderCollapse: "collapse" }}
                         >
@@ -4126,6 +4256,7 @@ export default function AdminPage() {
                         overflow: "hidden",
                       }}
                     >
+                      <div className="table-scroll-wrap">
                       <table
                         style={{
                           width: "100%",
@@ -4310,6 +4441,163 @@ export default function AdminPage() {
                           ))}
                         </tbody>
                       </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            {/* CONCLUDED EVENTS */}
+            {tab === "concluded" &&
+              (currentUserRole === "admin" || hasPermission("concluded")) && (
+                <div>
+                  <SectionHeader
+                    title="Concluded Events"
+                    sub="Events that ended 10+ hours ago with performance statistics"
+                  />
+
+                  {getConcludedEvents().length === 0 ? (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "4rem 2rem",
+                        color: C.muted,
+                      }}
+                    >
+                      <BarChart3
+                        size={48}
+                        style={{ margin: "0 auto 1rem", opacity: 0.3 }}
+                      />
+                      <div
+                        style={{
+                          fontSize: "1.1rem",
+                          fontWeight: 600,
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        No concluded events yet
+                      </div>
+                      <div style={{ fontSize: "0.875rem" }}>
+                        Events will appear here 10 hours after their start time
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fill, minmax(300px, 1fr))",
+                        gap: 16,
+                      }}
+                    >
+                      {getConcludedEvents().map((event) => (
+                        <div
+                          key={event._id}
+                          style={{
+                            background: C.card,
+                            border: `1px solid ${C.cardBorder}`,
+                            borderRadius: 14,
+                            padding: "1.5rem",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 12,
+                          }}
+                        >
+                          <div>
+                            <div
+                              style={{
+                                fontFamily: "'Syne', sans-serif",
+                                fontSize: 18,
+                                fontWeight: 700,
+                                color: C.text,
+                                marginBottom: 8,
+                              }}
+                            >
+                              {event.name}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 13,
+                                color: C.muted,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              <MapPin size={12} /> {event.location}
+                            </div>
+                          </div>
+
+                          <div
+                            style={{ height: 1, background: C.cardBorder }}
+                          />
+
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 6,
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 13,
+                                color: C.muted,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontWeight: 600,
+                                  color: C.text,
+                                }}
+                              >
+                                Date:
+                              </span>{" "}
+                              {event.date
+                                ? (() => {
+                                    const [year, month, day] =
+                                      event.date.split("-");
+                                    const date = new Date(
+                                      parseInt(year),
+                                      parseInt(month) - 1,
+                                      parseInt(day),
+                                    );
+                                    return date.toLocaleDateString("en-CA", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    });
+                                  })()
+                                : "No date"}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 13,
+                                color: C.muted,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontWeight: 600,
+                                  color: C.text,
+                                }}
+                              >
+                                Time:
+                              </span>{" "}
+                              {event.time || "TBD"}
+                            </div>
+                          </div>
+
+                          <Btn
+                            variant="primary"
+                            onClick={() => handleViewConcludedStats(event)}
+                            style={{ marginTop: "auto" }}
+                          >
+                            <BarChart3 size={14} />
+                            View Statistics
+                          </Btn>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -5048,6 +5336,309 @@ export default function AdminPage() {
               >
                 Cancel
               </Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Concluded Events Stats Modal */}
+      {concludedStatsModal && (
+        <Modal
+          title={`Event Statistics - ${concludedStatsModal.event.name}`}
+          onClose={() => setConcludedStatsModal(null)}
+          wide
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Event Information */}
+            <div>
+              <ModalSectionTitle>Event Information</ModalSectionTitle>
+              <ModalInfoPanel>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                    gap: 14,
+                  }}
+                >
+                  <DetailItem label="Event Name">
+                    {concludedStatsModal.event.name}
+                  </DetailItem>
+                  <DetailItem label="Location">
+                    {concludedStatsModal.event.location}
+                  </DetailItem>
+                  <DetailItem label="Date">
+                    {concludedStatsModal.event.date
+                      ? (() => {
+                          const [year, month, day] =
+                            concludedStatsModal.event.date.split("-");
+                          const date = new Date(
+                            parseInt(year),
+                            parseInt(month) - 1,
+                            parseInt(day),
+                          );
+                          return date.toLocaleDateString("en-CA", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          });
+                        })()
+                      : "No date"}
+                  </DetailItem>
+                  <DetailItem label="Time">
+                    {concludedStatsModal.event.time || "TBD"}
+                  </DetailItem>
+                </div>
+              </ModalInfoPanel>
+            </div>
+
+            {/* Ticket Tiers */}
+            <div>
+              <ModalSectionTitle>Ticket Tiers Sold</ModalSectionTitle>
+              <ModalInfoPanel>
+                {concludedStatsModal.stats.tiers.length === 0 ? (
+                  <div style={{ color: C.muted, fontSize: 14 }}>
+                    No ticket tiers configured for this event
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(200px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    {concludedStatsModal.stats.tiers.map((tier, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          background: C.sidebar,
+                          border: `1px solid ${C.cardBorder}`,
+                          borderRadius: 10,
+                          padding: "14px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 13,
+                            color: C.muted,
+                            marginBottom: 4,
+                          }}
+                        >
+                          {tier.name}
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: "'Syne', sans-serif",
+                            fontSize: 24,
+                            fontWeight: 700,
+                            color: C.accent,
+                          }}
+                        >
+                          {tier.sold}
+                        </div>
+                        <div style={{ fontSize: 12, color: C.muted }}>
+                          tickets sold
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ModalInfoPanel>
+            </div>
+
+            {/* Total Orders */}
+            <div>
+              <ModalSectionTitle>Total Ticket Orders</ModalSectionTitle>
+              <ModalInfoPanel>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 12,
+                      background: C.successDim,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <ShoppingBag size={22} color={C.success} />
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: "'Syne', sans-serif",
+                        fontSize: 32,
+                        fontWeight: 700,
+                        color: C.text,
+                      }}
+                    >
+                      {concludedStatsModal.stats.totalOrders}
+                    </div>
+                    <div style={{ fontSize: 13, color: C.muted }}>
+                      total orders
+                    </div>
+                  </div>
+                </div>
+              </ModalInfoPanel>
+            </div>
+
+            {/* Coupons */}
+            {concludedStatsModal.stats.coupons && (
+              <div>
+                <ModalSectionTitle>Coupon Usage</ModalSectionTitle>
+                <ModalInfoPanel>
+                  {concludedStatsModal.stats.coupons.length === 0 ? (
+                    <div style={{ color: C.muted, fontSize: 14 }}>
+                      No coupons were used for this event
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(180px, 1fr))",
+                        gap: 12,
+                      }}
+                    >
+                      {concludedStatsModal.stats.coupons.map(
+                        (coupon, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              background: C.sidebar,
+                              border: `1px solid ${C.cardBorder}`,
+                              borderRadius: 10,
+                              padding: "14px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 13,
+                                color: C.muted,
+                                marginBottom: 4,
+                              }}
+                            >
+                              {coupon.name}
+                            </div>
+                            <div
+                              style={{
+                                fontFamily: "'Syne', sans-serif",
+                                fontSize: 24,
+                                fontWeight: 700,
+                                color: C.info,
+                              }}
+                            >
+                              {coupon.usage}
+                            </div>
+                            <div style={{ fontSize: 12, color: C.muted }}>
+                              times used
+                            </div>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+                </ModalInfoPanel>
+              </div>
+            )}
+
+            {/* Total Check-ins */}
+            <div>
+              <ModalSectionTitle>Total Check-ins</ModalSectionTitle>
+              <ModalInfoPanel>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 12,
+                      background: C.infoDim,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <QrCode size={22} color={C.info} />
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: "'Syne', sans-serif",
+                        fontSize: 32,
+                        fontWeight: 700,
+                        color: C.text,
+                      }}
+                    >
+                      {concludedStatsModal.stats.totalCheckIns}
+                    </div>
+                    <div style={{ fontSize: 13, color: C.muted }}>
+                      attendees checked in
+                    </div>
+                  </div>
+                </div>
+              </ModalInfoPanel>
+            </div>
+
+            {/* Total Revenue */}
+            <div>
+              <ModalSectionTitle>Total Revenue</ModalSectionTitle>
+              <ModalInfoPanel>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 12,
+                      background: C.accentDim,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <DollarSign size={22} color={C.accent} />
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: "'Syne', sans-serif",
+                        fontSize: 32,
+                        fontWeight: 700,
+                        color: C.accent,
+                      }}
+                    >
+                      ${concludedStatsModal.stats.totalRevenue.toFixed(2)}
+                    </div>
+                    <div style={{ fontSize: 13, color: C.muted }}>
+                      CAD from successful orders
+                    </div>
+                  </div>
+                </div>
+              </ModalInfoPanel>
+            </div>
+
+            <Divider />
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <Btn onClick={() => setConcludedStatsModal(null)}>Close</Btn>
             </div>
           </div>
         </Modal>
