@@ -2475,7 +2475,10 @@ export default function AdminPage() {
             return (
               <div
                 key={id}
-                onClick={() => { setTab(id); if (isMobile) setSidebarOpen(false); }}
+                onClick={() => {
+                  setTab(id);
+                  if (isMobile) setSidebarOpen(false);
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -2608,9 +2611,7 @@ export default function AdminPage() {
                   >
                     Live Stats
                   </p>
-                  <div
-                    className="stat-grid"
-                  >
+                  <div className="stat-grid">
                     <StatCard
                       label="Total Events"
                       value={events.length}
@@ -2646,9 +2647,7 @@ export default function AdminPage() {
                   >
                     Overview
                   </p>
-                  <div
-                    className="stat-grid"
-                  >
+                  <div className="stat-grid">
                     <StatCard
                       label="Total Coupons"
                       value={coupons.length}
@@ -2693,9 +2692,7 @@ export default function AdminPage() {
                   >
                     Sales
                   </p>
-                  <div
-                    className="stat-grid"
-                  >
+                  <div className="stat-grid">
                     <StatCard
                       label="Total Orders"
                       value={transactions.length}
@@ -3255,138 +3252,142 @@ export default function AdminPage() {
                     }}
                   >
                     <div className="table-scroll-wrap">
-                    <table
-                      style={{ width: "100%", borderCollapse: "collapse" }}
-                    >
-                      <thead>
-                        <tr style={{ background: C.sidebar }}>
-                          <th style={TABLE_HEAD}>Code</th>
-                          <th style={TABLE_HEAD}>Discount</th>
-                          <th style={TABLE_HEAD}>Status</th>
-                          <th style={{ ...TABLE_HEAD, textAlign: "right" }}>
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {coupons.map((cp) => (
-                          <tr key={cp._id}>
-                            <td style={TABLE_CELL}>
-                              <code
-                                style={{
-                                  fontFamily: "monospace",
-                                  fontSize: 14,
-                                  background: C.sidebar,
-                                  padding: "4px 10px",
-                                  borderRadius: 6,
-                                  letterSpacing: "0.08em",
-                                  color: cp.active ? C.text : C.muted,
-                                }}
-                              >
-                                {cp.name}
-                              </code>
-                            </td>
-                            <td style={TABLE_CELL}>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 6,
-                                }}
-                              >
+                      <table
+                        style={{ width: "100%", borderCollapse: "collapse" }}
+                      >
+                        <thead>
+                          <tr style={{ background: C.sidebar }}>
+                            <th style={TABLE_HEAD}>Code</th>
+                            <th style={TABLE_HEAD}>Discount</th>
+                            <th style={TABLE_HEAD}>Status</th>
+                            <th style={{ ...TABLE_HEAD, textAlign: "right" }}>
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {coupons.map((cp) => (
+                            <tr key={cp._id}>
+                              <td style={TABLE_CELL}>
+                                <code
+                                  style={{
+                                    fontFamily: "monospace",
+                                    fontSize: 14,
+                                    background: C.sidebar,
+                                    padding: "4px 10px",
+                                    borderRadius: 6,
+                                    letterSpacing: "0.08em",
+                                    color: cp.active ? C.text : C.muted,
+                                  }}
+                                >
+                                  {cp.name}
+                                </code>
+                              </td>
+                              <td style={TABLE_CELL}>
                                 <div
                                   style={{
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: 7,
-                                    background: C.accentDim,
                                     display: "flex",
                                     alignItems: "center",
-                                    justifyContent: "center",
+                                    gap: 6,
                                   }}
                                 >
-                                  <Percent size={13} color={C.accent} />
+                                  <div
+                                    style={{
+                                      width: 28,
+                                      height: 28,
+                                      borderRadius: 7,
+                                      background: C.accentDim,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <Percent size={13} color={C.accent} />
+                                  </div>
+                                  <span
+                                    style={{
+                                      fontFamily: "'Syne', sans-serif",
+                                      fontWeight: 600,
+                                      fontSize: 15,
+                                    }}
+                                  >
+                                    {cp.percentage}%
+                                  </span>
+                                  <span
+                                    style={{ fontSize: 12, color: C.muted }}
+                                  >
+                                    off
+                                  </span>
                                 </div>
-                                <span
+                              </td>
+                              <td style={TABLE_CELL}>
+                                <Badge active={cp.active} />
+                              </td>
+                              <td style={{ ...TABLE_CELL, textAlign: "right" }}>
+                                <div
                                   style={{
-                                    fontFamily: "'Syne', sans-serif",
-                                    fontWeight: 600,
-                                    fontSize: 15,
+                                    display: "flex",
+                                    gap: 8,
+                                    justifyContent: "flex-end",
                                   }}
                                 >
-                                  {cp.percentage}%
-                                </span>
-                                <span style={{ fontSize: 12, color: C.muted }}>
-                                  off
-                                </span>
-                              </div>
-                            </td>
-                            <td style={TABLE_CELL}>
-                              <Badge active={cp.active} />
-                            </td>
-                            <td style={{ ...TABLE_CELL, textAlign: "right" }}>
-                              <div
+                                  <Btn
+                                    variant={
+                                      cp.active ? "warning" : "secondary"
+                                    }
+                                    onClick={() => toggleCoupon(cp._id)}
+                                  >
+                                    {cp.active ? (
+                                      <>
+                                        <XCircle size={13} /> Invalidate
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle size={13} /> Activate
+                                      </>
+                                    )}
+                                  </Btn>
+                                  <Btn
+                                    variant="ghost"
+                                    onClick={() =>
+                                      setCouponModal({ type: "edit", data: cp })
+                                    }
+                                  >
+                                    <Pencil size={13} /> Edit
+                                  </Btn>
+                                  <Btn
+                                    variant="danger"
+                                    onClick={() =>
+                                      setConfirm({
+                                        type: "coupon",
+                                        _id: cp._id,
+                                        name: cp.name,
+                                      })
+                                    }
+                                  >
+                                    <Trash2 size={13} />
+                                  </Btn>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {coupons.length === 0 && (
+                            <tr>
+                              <td
+                                colSpan={4}
                                 style={{
-                                  display: "flex",
-                                  gap: 8,
-                                  justifyContent: "flex-end",
+                                  ...TABLE_CELL,
+                                  textAlign: "center",
+                                  color: C.muted,
+                                  padding: "2rem",
                                 }}
                               >
-                                <Btn
-                                  variant={cp.active ? "warning" : "secondary"}
-                                  onClick={() => toggleCoupon(cp._id)}
-                                >
-                                  {cp.active ? (
-                                    <>
-                                      <XCircle size={13} /> Invalidate
-                                    </>
-                                  ) : (
-                                    <>
-                                      <CheckCircle size={13} /> Activate
-                                    </>
-                                  )}
-                                </Btn>
-                                <Btn
-                                  variant="ghost"
-                                  onClick={() =>
-                                    setCouponModal({ type: "edit", data: cp })
-                                  }
-                                >
-                                  <Pencil size={13} /> Edit
-                                </Btn>
-                                <Btn
-                                  variant="danger"
-                                  onClick={() =>
-                                    setConfirm({
-                                      type: "coupon",
-                                      _id: cp._id,
-                                      name: cp.name,
-                                    })
-                                  }
-                                >
-                                  <Trash2 size={13} />
-                                </Btn>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                        {coupons.length === 0 && (
-                          <tr>
-                            <td
-                              colSpan={4}
-                              style={{
-                                ...TABLE_CELL,
-                                textAlign: "center",
-                                color: C.muted,
-                                padding: "2rem",
-                              }}
-                            >
-                              No coupons yet.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                                No coupons yet.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>
@@ -4257,190 +4258,192 @@ export default function AdminPage() {
                       }}
                     >
                       <div className="table-scroll-wrap">
-                      <table
-                        style={{
-                          width: "100%",
-                          borderCollapse: "collapse",
-                        }}
-                      >
-                        <thead>
-                          <tr style={{ background: C.sidebar }}>
-                            <th style={TABLE_HEAD}>User</th>
-                            <th style={TABLE_HEAD}>Permissions</th>
-                            <th style={TABLE_HEAD}>Status</th>
-                            <th style={TABLE_HEAD}>Last Login</th>
-                            <th style={TABLE_HEAD}>Created</th>
-                            <th style={TABLE_HEAD}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {users.map((user) => (
-                            <tr key={user._id}>
-                              <td
-                                style={{
-                                  padding: "1rem",
-                                  borderBottom: `1px solid ${C.cardBorder}`,
-                                }}
-                              >
-                                <div>
-                                  <div
-                                    style={{
-                                      fontWeight: 600,
-                                      marginBottom: "0.25rem",
-                                    }}
-                                  >
-                                    {user.username}
-                                  </div>
-                                  <div
-                                    style={{
-                                      fontSize: "0.875rem",
-                                      color: C.muted,
-                                    }}
-                                  >
-                                    {user.email}
-                                  </div>
-                                </div>
-                              </td>
-                              <td
-                                style={{
-                                  padding: "1rem",
-                                  borderBottom: `1px solid ${C.cardBorder}`,
-                                }}
-                              >
-                                <div
+                        <table
+                          style={{
+                            width: "100%",
+                            borderCollapse: "collapse",
+                          }}
+                        >
+                          <thead>
+                            <tr style={{ background: C.sidebar }}>
+                              <th style={TABLE_HEAD}>User</th>
+                              <th style={TABLE_HEAD}>Permissions</th>
+                              <th style={TABLE_HEAD}>Status</th>
+                              <th style={TABLE_HEAD}>Last Login</th>
+                              <th style={TABLE_HEAD}>Created</th>
+                              <th style={TABLE_HEAD}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {users.map((user) => (
+                              <tr key={user._id}>
+                                <td
                                   style={{
-                                    display: "flex",
-                                    flexWrap: "wrap",
-                                    gap: "0.25rem",
+                                    padding: "1rem",
+                                    borderBottom: `1px solid ${C.cardBorder}`,
                                   }}
                                 >
-                                  {user.permissions?.length > 0 ? (
-                                    user.permissions.map((perm: string) => (
-                                      <span
-                                        key={perm}
-                                        style={{
-                                          padding: "0.25rem 0.5rem",
-                                          borderRadius: "6px",
-                                          fontSize: "0.75rem",
-                                          background: C.accent,
-                                          color: "white",
-                                        }}
-                                      >
-                                        {perm}
-                                      </span>
-                                    ))
-                                  ) : (
-                                    <span
+                                  <div>
+                                    <div
                                       style={{
-                                        color: C.muted,
-                                        fontSize: "0.875rem",
+                                        fontWeight: 600,
+                                        marginBottom: "0.25rem",
                                       }}
                                     >
-                                      No permissions
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td
-                                style={{
-                                  padding: "1rem",
-                                  borderBottom: `1px solid ${C.cardBorder}`,
-                                }}
-                              >
-                                <span
+                                      {user.username}
+                                    </div>
+                                    <div
+                                      style={{
+                                        fontSize: "0.875rem",
+                                        color: C.muted,
+                                      }}
+                                    >
+                                      {user.email}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td
                                   style={{
-                                    padding: "0.25rem 0.75rem",
-                                    borderRadius: "12px",
-                                    fontSize: "0.75rem",
-                                    fontWeight: 600,
-                                    background: user.isActive
-                                      ? "#10b981"
-                                      : "#ef4444",
-                                    color: "white",
+                                    padding: "1rem",
+                                    borderBottom: `1px solid ${C.cardBorder}`,
                                   }}
                                 >
-                                  {user.isActive ? "Active" : "Inactive"}
-                                </span>
-                              </td>
-                              <td
-                                style={{
-                                  padding: "1rem",
-                                  borderBottom: `1px solid ${C.cardBorder}`,
-                                  fontSize: "0.875rem",
-                                  color: C.muted,
-                                }}
-                              >
-                                {user.lastLogin
-                                  ? new Date(user.lastLogin).toLocaleString()
-                                  : "Never"}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "1rem",
-                                  borderBottom: `1px solid ${C.cardBorder}`,
-                                  fontSize: "0.875rem",
-                                  color: C.muted,
-                                }}
-                              >
-                                {new Date(user.createdAt).toLocaleDateString()}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "1rem",
-                                  borderBottom: `1px solid ${C.cardBorder}`,
-                                }}
-                              >
-                                <div
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      flexWrap: "wrap",
+                                      gap: "0.25rem",
+                                    }}
+                                  >
+                                    {user.permissions?.length > 0 ? (
+                                      user.permissions.map((perm: string) => (
+                                        <span
+                                          key={perm}
+                                          style={{
+                                            padding: "0.25rem 0.5rem",
+                                            borderRadius: "6px",
+                                            fontSize: "0.75rem",
+                                            background: C.accent,
+                                            color: "white",
+                                          }}
+                                        >
+                                          {perm}
+                                        </span>
+                                      ))
+                                    ) : (
+                                      <span
+                                        style={{
+                                          color: C.muted,
+                                          fontSize: "0.875rem",
+                                        }}
+                                      >
+                                        No permissions
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td
                                   style={{
-                                    display: "flex",
-                                    gap: "0.5rem",
+                                    padding: "1rem",
+                                    borderBottom: `1px solid ${C.cardBorder}`,
                                   }}
                                 >
-                                  <Btn
-                                    onClick={() => {
-                                      setUserModal({
-                                        type: "edit",
-                                        data: user,
-                                      });
-                                      setUserForm({
-                                        username: user.username,
-                                        password: "", // Don't populate password for security
-                                        role: "user",
-                                        permissions: user.permissions || [],
-                                        isActive: user.isActive,
-                                      });
-                                    }}
+                                  <span
                                     style={{
-                                      padding: "0.5rem",
-                                      background: `${C.accent}15`,
-                                      color: C.accent,
-                                      border: `1px solid ${C.accent}30`,
+                                      padding: "0.25rem 0.75rem",
+                                      borderRadius: "12px",
+                                      fontSize: "0.75rem",
+                                      fontWeight: 600,
+                                      background: user.isActive
+                                        ? "#10b981"
+                                        : "#ef4444",
+                                      color: "white",
                                     }}
                                   >
-                                    <Edit size={14} />
-                                  </Btn>
-                                  <Btn
-                                    onClick={() => {
-                                      setDeleteConfirm({
-                                        userId: user._id,
-                                        username: user.username,
-                                      });
-                                    }}
+                                    {user.isActive ? "Active" : "Inactive"}
+                                  </span>
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "1rem",
+                                    borderBottom: `1px solid ${C.cardBorder}`,
+                                    fontSize: "0.875rem",
+                                    color: C.muted,
+                                  }}
+                                >
+                                  {user.lastLogin
+                                    ? new Date(user.lastLogin).toLocaleString()
+                                    : "Never"}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "1rem",
+                                    borderBottom: `1px solid ${C.cardBorder}`,
+                                    fontSize: "0.875rem",
+                                    color: C.muted,
+                                  }}
+                                >
+                                  {new Date(
+                                    user.createdAt,
+                                  ).toLocaleDateString()}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "1rem",
+                                    borderBottom: `1px solid ${C.cardBorder}`,
+                                  }}
+                                >
+                                  <div
                                     style={{
-                                      padding: "0.5rem",
-                                      background: "#ef444415",
-                                      color: "#ef4444",
-                                      border: "1px solid #ef444430",
+                                      display: "flex",
+                                      gap: "0.5rem",
                                     }}
                                   >
-                                    <Trash2 size={14} />
-                                  </Btn>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                    <Btn
+                                      onClick={() => {
+                                        setUserModal({
+                                          type: "edit",
+                                          data: user,
+                                        });
+                                        setUserForm({
+                                          username: user.username,
+                                          password: "", // Don't populate password for security
+                                          role: "user",
+                                          permissions: user.permissions || [],
+                                          isActive: user.isActive,
+                                        });
+                                      }}
+                                      style={{
+                                        padding: "0.5rem",
+                                        background: `${C.accent}15`,
+                                        color: C.accent,
+                                        border: `1px solid ${C.accent}30`,
+                                      }}
+                                    >
+                                      <Edit size={14} />
+                                    </Btn>
+                                    <Btn
+                                      onClick={() => {
+                                        setDeleteConfirm({
+                                          userId: user._id,
+                                          username: user.username,
+                                        });
+                                      }}
+                                      style={{
+                                        padding: "0.5rem",
+                                        background: "#ef444415",
+                                        color: "#ef4444",
+                                        border: "1px solid #ef444430",
+                                      }}
+                                    >
+                                      <Trash2 size={14} />
+                                    </Btn>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   )}

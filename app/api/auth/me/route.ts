@@ -85,7 +85,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to get user info" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to get user info",
+      },
       { status: 500 },
     );
   }

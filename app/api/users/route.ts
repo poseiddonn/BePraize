@@ -22,7 +22,9 @@ export async function GET() {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch users" },
+      {
+        error: error instanceof Error ? error.message : "Failed to fetch users",
+      },
       { status: 500 },
     );
   }
@@ -75,7 +77,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to create user" },
+      {
+        error: error instanceof Error ? error.message : "Failed to create user",
+      },
       { status: 500 },
     );
   }

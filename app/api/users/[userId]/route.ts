@@ -29,7 +29,9 @@ export async function GET(
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch user" },
+      {
+        error: error instanceof Error ? error.message : "Failed to fetch user",
+      },
       { status: 500 },
     );
   }
@@ -77,7 +79,9 @@ export async function PUT(
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to update user" },
+      {
+        error: error instanceof Error ? error.message : "Failed to update user",
+      },
       { status: 500 },
     );
   }
@@ -104,7 +108,9 @@ export async function DELETE(
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to delete user" },
+      {
+        error: error instanceof Error ? error.message : "Failed to delete user",
+      },
       { status: 500 },
     );
   }
