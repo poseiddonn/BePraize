@@ -5189,6 +5189,11 @@ export default function AdminPage() {
                     },
                     { id: "checkin", label: "Check-in", desc: "Scan tickets" },
                     { id: "users", label: "Users", desc: "Manage users" },
+                    {
+                      id: "concluded",
+                      label: "Concluded",
+                      desc: "View event stats",
+                    },
                   ].map((permission) => {
                     const selected = userForm.permissions.includes(
                       permission.id,

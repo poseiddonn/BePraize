@@ -51,6 +51,7 @@ const UserSchema = new mongoose.Schema<IUser>(
           "transactions",
           "checkin",
           "users",
+          "concluded",
         ],
       },
     ],
