@@ -26,6 +26,7 @@ import {
   QrCode,
   Users,
   Edit,
+  Menu,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -1348,6 +1349,7 @@ function createClientTicketId(orderNumber: string, usedTicketIds: Set<string>) {
 
 export default function AdminPage() {
   const [tab, setTab] = useState<TabId>("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // ── Data state ──
   const [events, setEvents] = useState<Event[]>([]);
@@ -2283,8 +2285,23 @@ export default function AdminPage() {
     >
       <style>{FONT_CSS}</style>
 
+      {/* Mobile overlay - closes sidebar on touch */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 40,
+            display: "block",
+          }}
+        />
+      )}
+
       {/* ── Sidebar ── */}
       <aside
+        className={`mobile-sidebar ${sidebarOpen ? "open" : ""}`}
         style={{
           width: 228,
           background: C.sidebar,
@@ -2301,22 +2318,42 @@ export default function AdminPage() {
           style={{
             padding: "1.5rem 1.5rem 1.25rem",
             borderBottom: `1px solid ${C.cardBorder}`,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
-          <div
+          <div>
+            <div
+              style={{
+                fontFamily: "'Syne', sans-serif",
+                fontSize: 17,
+                fontWeight: 700,
+                color: C.accent,
+                letterSpacing: "0.04em",
+              }}
+            >
+              BEPRAIZE SAX
+            </div>
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+              Event Ticketing
+            </div>
+          </div>
+          {/* Mobile close button */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="mobile-close-btn"
             style={{
-              fontFamily: "'Syne', sans-serif",
-              fontSize: 17,
-              fontWeight: 700,
-              color: C.accent,
-              letterSpacing: "0.04em",
+              display: "none",
+              background: "transparent",
+              border: "none",
+              color: C.muted,
+              cursor: "pointer",
+              padding: 4,
             }}
           >
-            BEPRAIZE SAX
-          </div>
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-            Event Ticketing
-          </div>
+            <X size={20} />
+          </button>
         </div>
         <nav style={{ padding: "0.75rem 0.5rem", flex: 1 }}>
           {allowedNavItems.map(({ id, label, icon: Icon }) => {
@@ -2360,7 +2397,40 @@ export default function AdminPage() {
       </aside>
 
       {/* ── Main ── */}
-      <main style={{ flex: 1, padding: "2rem 2.5rem", overflowY: "auto" }}>
+      <main
+        className="main-content"
+        style={{
+          flex: 1,
+          padding: "2rem 2.5rem",
+          overflowY: "auto",
+          position: "relative",
+        }}
+      >
+        {/* Mobile menu button - appears when sidebar is closed */}
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className={`mobile-menu-btn ${sidebarOpen ? "hidden" : ""}`}
+          style={{
+            display: "none",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            background: C.card,
+            border: `1px solid ${C.cardBorder}`,
+            borderRadius: 8,
+            padding: "10px 16px",
+            color: C.text,
+            cursor: "pointer",
+            fontSize: 14,
+            fontWeight: 500,
+            fontFamily: "'DM Sans', sans-serif",
+            marginBottom: 16,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          }}
+        >
+          <Menu size={18} />
+          <span>Menu</span>
+        </button>
         {/* Error banner */}
         {error && (
           <div
