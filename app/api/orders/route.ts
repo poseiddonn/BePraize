@@ -7,8 +7,6 @@ import { TicketTierModel } from "@/app/lib/models/TicketTier";
 // Define TransactionStatus type to match admin interface
 type TransactionStatus = "success" | "failed" | "pending" | "refunded";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
-
 // GET: Fetch all orders
 export async function GET() {
   try {
@@ -78,6 +76,16 @@ export async function POST(request: NextRequest) {
       if (!amount || amount <= 0) {
         return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
       }
+
+      const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeSecretKey) {
+        return NextResponse.json(
+          { error: "Stripe configuration error" },
+          { status: 500 },
+        );
+      }
+
+      const stripe = new Stripe(stripeSecretKey);
 
       // Create a payment intent
       const paymentIntent = await stripe.paymentIntents.create({
