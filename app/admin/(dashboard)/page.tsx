@@ -2611,7 +2611,7 @@ export default function AdminPage() {
                     Dashboard
                   </h1>
                   <p style={{ fontSize: 14, color: C.muted, marginBottom: 28 }}>
-                    Live platform metrics from MongoDB
+                    Live platform metrics
                   </p>
 
                   <p

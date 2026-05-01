@@ -259,7 +259,7 @@ export default function AboutPage() {
             alt="BePraize Sax"
             fill
             priority
-            style={{ objectFit: "cover", objectPosition: "center 30%" }}
+            style={{ objectFit: "cover", objectPosition: "center top" }}
           />
           <div className="about-hero-overlay" />
         </div>

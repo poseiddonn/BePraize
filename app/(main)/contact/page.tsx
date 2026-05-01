@@ -307,12 +307,12 @@ export default function ContactPage() {
       <section className="contact-hero">
         <div className="contact-hero-bg">
           <Image
-            src="/contact-hero.jpg"
+            src="/carousel1.jpg"
             alt="Contact BePraize Sax"
             fill
             priority
             sizes="100vw"
-            style={{ objectFit: "cover", objectPosition: "center 12%" }}
+            style={{ objectFit: "cover", objectPosition: "center 7%" }}
           />
           <div className="contact-hero-overlay" />
         </div>

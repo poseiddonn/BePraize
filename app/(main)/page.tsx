@@ -268,6 +268,7 @@ const CSS = `
 
 const GALLERY = [
   "/carousel1.jpg",
+  "/carou_sel.jpg",
   "/carousel2.jpg",
   "/contact-hero.jpg",
   "/home-hero.jpg",
@@ -331,7 +332,7 @@ export default function HomePage() {
             fill
             priority
             sizes="100vw"
-            style={{ objectFit: "cover", objectPosition: "center 20%" }}
+            style={{ objectFit: "cover", objectPosition: "center top" }}
           />
           <div className="hp-hero-overlay" />
         </div>
