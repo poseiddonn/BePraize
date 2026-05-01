@@ -51,7 +51,7 @@ const NAV_ITEMS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "transactions", label: "Transactions", icon: ShoppingBag },
   { id: "checkin", label: "Check-in", icon: QrCode },
   { id: "users", label: "Users", icon: Users },
-  { id: "concluded", label: "Concluded Events", icon: BarChart3 },
+  { id: "concluded", label: "Event Analytics", icon: BarChart3 },
 ];
 
 export type TransactionStatus = "success" | "failed" | "pending" | "refunded";
@@ -4473,8 +4473,8 @@ export default function AdminPage() {
               (currentUserRole === "admin" || hasPermission("concluded")) && (
                 <div>
                   <SectionHeader
-                    title="Concluded Events"
-                    sub="Events that ended recently with performance statistics"
+                    title="Event Analytics"
+                    sub="Perfomance statistics of recently concluded events"
                   />
 
                   {getConcludedEvents().length === 0 ? (
@@ -5209,7 +5209,7 @@ export default function AdminPage() {
                     { id: "users", label: "Users", desc: "Manage users" },
                     {
                       id: "concluded",
-                      label: "Concluded",
+                      label: "Analytics",
                       desc: "View event stats",
                     },
                   ].map((permission) => {
