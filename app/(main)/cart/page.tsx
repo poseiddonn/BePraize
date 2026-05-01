@@ -18,6 +18,9 @@ import {
 interface CartItem {
   eventId: string;
   eventName: string;
+  eventDate: string;
+  eventTime: string;
+  venue: string;
   tierId: string;
   tierName: string;
   price: number;

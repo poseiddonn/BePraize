@@ -51,6 +51,9 @@ interface Coupon {
 interface CartItem {
   eventId: string;
   eventName: string;
+  eventDate: string;
+  eventTime: string;
+  venue: string;
   tierId: string;
   tierName: string;
   price: number;
@@ -545,6 +548,8 @@ export default function TicketPage() {
         eventId: event._id,
         eventName: event.name,
         eventDate: event.date,
+        eventTime: event.time,
+        venue: event.location,
         tierId: t._id,
         tierName: t.name,
         price: t.price,

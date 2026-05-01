@@ -30,6 +30,10 @@ interface CartItem {
 
   eventDate: string;
 
+  eventTime: string;
+
+  venue: string;
+
   tierId: string;
 
   tierName: string;
@@ -1153,8 +1157,8 @@ export default function CheckoutPage() {
           event: {
             name: firstEvent.eventName,
             date: firstEvent.eventDate,
-            time: "4:00 PM",
-            venue: "National Event Centre",
+            time: firstEvent.eventTime,
+            venue: firstEvent.venue,
           },
 
           attendees: order.attendees.map((a, i) => {
