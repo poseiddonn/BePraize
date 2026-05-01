@@ -1661,6 +1661,21 @@ export default function AdminPage() {
     });
   };
 
+  // Get upcoming events (less than 6 hours after event start time)
+  const getUpcomingEvents = (): Event[] => {
+    const now = new Date();
+    return events.filter((event) => {
+      if (!event.date || !event.time) return false;
+      const [year, month, day] = event.date.split("-").map(Number);
+      const [hours, minutes] = event.time.split(":").map(Number);
+      const eventDateTime = new Date(year, month - 1, day, hours, minutes);
+      const sixHoursAfter = new Date(
+        eventDateTime.getTime() + 6 * 60 * 60 * 1000,
+      );
+      return now < sixHoursAfter;
+    });
+  };
+
   // Calculate event statistics
   const calculateEventStats = async (event: Event) => {
     // Fetch detailed orders for this event
@@ -2734,7 +2749,7 @@ export default function AdminPage() {
                   >
                     Upcoming Events
                   </p>
-                  {events.length === 0 ? (
+                  {getUpcomingEvents().length === 0 ? (
                     <div
                       style={{
                         background: C.card,
@@ -2746,7 +2761,8 @@ export default function AdminPage() {
                         fontSize: 14,
                       }}
                     >
-                      No events yet. Head to Events to create your first one.
+                      No upcoming events yet. Head to Events to create your
+                      first one.
                     </div>
                   ) : (
                     <div
@@ -2756,68 +2772,70 @@ export default function AdminPage() {
                         gap: 10,
                       }}
                     >
-                      {events.slice(0, 5).map((ev) => (
-                        <div
-                          key={ev._id}
-                          style={{
-                            background: C.card,
-                            border: `1px solid ${C.cardBorder}`,
-                            borderRadius: 12,
-                            padding: "1rem 1.25rem",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontWeight: 600, fontSize: 15 }}>
-                              {ev.name}
+                      {getUpcomingEvents()
+                        .slice(0, 5)
+                        .map((ev) => (
+                          <div
+                            key={ev._id}
+                            style={{
+                              background: C.card,
+                              border: `1px solid ${C.cardBorder}`,
+                              borderRadius: 12,
+                              padding: "1rem 1.25rem",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: 15 }}>
+                                {ev.name}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 13,
+                                  color: C.muted,
+                                  marginTop: 3,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                }}
+                              >
+                                <MapPin size={12} /> {ev.location}
+                                {ev.address && <>&nbsp;·&nbsp;{ev.address}</>}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  color: C.faint,
+                                  marginTop: 2,
+                                }}
+                              >
+                                {ev.date
+                                  ? (() => {
+                                      const [year, month, day] =
+                                        ev.date.split("-");
+                                      const date = new Date(
+                                        parseInt(year),
+                                        parseInt(month) - 1,
+                                        parseInt(day),
+                                      );
+                                      return date.toLocaleDateString("en-CA", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      });
+                                    })()
+                                  : "No date"}
+                                {ev.time && <>&nbsp;·&nbsp;{ev.time}</>}
+                              </div>
                             </div>
-                            <div
-                              style={{
-                                fontSize: 13,
-                                color: C.muted,
-                                marginTop: 3,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 6,
-                              }}
-                            >
-                              <MapPin size={12} /> {ev.location}
-                              {ev.address && <>&nbsp;·&nbsp;{ev.address}</>}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 12,
-                                color: C.faint,
-                                marginTop: 2,
-                              }}
-                            >
-                              {ev.date
-                                ? (() => {
-                                    const [year, month, day] =
-                                      ev.date.split("-");
-                                    const date = new Date(
-                                      parseInt(year),
-                                      parseInt(month) - 1,
-                                      parseInt(day),
-                                    );
-                                    return date.toLocaleDateString("en-CA", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    });
-                                  })()
-                                : "No date"}
-                              {ev.time && <>&nbsp;·&nbsp;{ev.time}</>}
-                            </div>
+                            <span style={{ fontSize: 12, color: C.muted }}>
+                              {ev.ticketTierIds.length} tier
+                              {ev.ticketTierIds.length !== 1 ? "s" : ""}
+                            </span>
                           </div>
-                          <span style={{ fontSize: 12, color: C.muted }}>
-                            {ev.ticketTierIds.length} tier
-                            {ev.ticketTierIds.length !== 1 ? "s" : ""}
-                          </span>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   )}
                 </div>
