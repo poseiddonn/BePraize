@@ -642,7 +642,7 @@ export default function TicketPage() {
           >
             Event Not Found
           </p>
-          <Link href="/events" style={{ color: "#e53e3e", fontSize: 14 }}>
+          <Link href="/event" style={{ color: "#e53e3e", fontSize: 14 }}>
             ← Back to Events
           </Link>
         </div>
