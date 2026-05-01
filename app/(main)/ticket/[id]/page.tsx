@@ -779,7 +779,7 @@ export default function TicketPage() {
                 </p>
               </div>
               <Link
-                href="/events"
+                href="/event"
                 style={{
                   color: "#e53e3e",
                   fontSize: 13,
