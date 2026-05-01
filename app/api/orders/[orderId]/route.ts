@@ -49,8 +49,7 @@ export async function GET(
     };
 
     return NextResponse.json(detailedOrder);
-  } catch (error) {
-    const { orderId } = await params;
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch order details" },
       { status: 500 },
@@ -91,8 +90,7 @@ export async function PATCH(
       success: true,
       status: updatedOrder.status,
     });
-  } catch (error) {
-    const { orderId } = await params;
+  } catch {
     return NextResponse.json(
       { error: "Failed to update order status" },
       { status: 500 },

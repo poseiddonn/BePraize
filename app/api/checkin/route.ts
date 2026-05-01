@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       message: "Check-in successful",
       checkIn: checkInData,
     });
-  } catch (error) {
+  } catch{
     return NextResponse.json(
       { error: "Failed to process check-in" },
       { status: 500 },
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
       total: todayCheckIns.length,
       date: today.toISOString(),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch check-ins" },
       { status: 500 },

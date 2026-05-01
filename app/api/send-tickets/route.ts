@@ -112,7 +112,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true, sent: tickets.length });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to send tickets. Please try again." },
 

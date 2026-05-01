@@ -301,7 +301,7 @@ export default function HomePage() {
         });
 
         setUpcomingEvent(nextEvent || null);
-      } catch (error) {
+      } catch {
       } finally {
         setLoading(false);
       }

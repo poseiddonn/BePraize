@@ -7,7 +7,7 @@ export async function GET() {
     await connectDB();
     const tiers = await TicketTierModel.find().sort({ price: 1 }).lean();
     return NextResponse.json(tiers);
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch ticket tiers" },
       { status: 500 },
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const tier = await TicketTierModel.create(body);
     return NextResponse.json(tier, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to create ticket tier" },
       { status: 500 },

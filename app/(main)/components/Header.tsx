@@ -79,7 +79,7 @@ export default function Header() {
         });
 
         setUpcomingEvent(nextEvent || null);
-      } catch (error) {
+      } catch {
       } finally {
         setEventsLoading(false);
       }

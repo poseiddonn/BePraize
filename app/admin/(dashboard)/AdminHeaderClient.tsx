@@ -13,7 +13,7 @@ export function AdminHeaderClient() {
           const data = await response.json();
           setUsername(data.username || "Admin");
         }
-      } catch (error) {
+      } catch {
         // Keep default username if fetch fails
       }
     };
@@ -35,7 +35,7 @@ export function AdminHeaderClient() {
 
       // Force redirect to login page
       window.location.href = "/admin/login";
-    } catch (error) {
+    } catch {
       // Even if API fails, still redirect to login
       window.location.href = "/admin/login";
     }

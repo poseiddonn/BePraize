@@ -41,7 +41,7 @@ export async function PUT(req: Request, { params }: Params) {
     }
 
     return NextResponse.json(updated);
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to update coupon" },
       { status: 500 },
@@ -61,7 +61,7 @@ export async function PATCH(_req: Request, { params }: Params) {
     coupon.active = !coupon.active;
     await coupon.save();
     return NextResponse.json(coupon.toObject());
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to toggle coupon" },
       { status: 500 },
@@ -91,7 +91,7 @@ export async function DELETE(_req: Request, { params }: Params) {
     );
 
     return NextResponse.json({ success: true });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to delete coupon" },
       { status: 500 },

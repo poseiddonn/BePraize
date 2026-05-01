@@ -4456,7 +4456,7 @@ export default function AdminPage() {
                 <div>
                   <SectionHeader
                     title="Concluded Events"
-                    sub="Events that ended 10+ hours ago with performance statistics"
+                    sub="Events that ended recently with performance statistics"
                   />
 
                   {getConcludedEvents().length === 0 ? (

@@ -22,7 +22,7 @@ export async function PUT(req: Request, { params }: Params) {
         { status: 404 },
       );
     return NextResponse.json(updated);
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to update ticket tier" },
       { status: 500 },
@@ -41,7 +41,7 @@ export async function DELETE(_req: Request, { params }: Params) {
         { status: 404 },
       );
     return NextResponse.json({ success: true });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to delete ticket tier" },
       { status: 500 },

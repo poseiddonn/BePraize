@@ -29,7 +29,7 @@ export async function POST() {
     clearCookie(response, "session");
 
     return response;
-  } catch (error) {
+  } catch {
     // Even if there's an error, try to clear cookies
     const response = NextResponse.json(
       { error: "Internal server error" },

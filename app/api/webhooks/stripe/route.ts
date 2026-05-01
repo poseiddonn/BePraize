@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       signature,
       process.env.STRIPE_WEBHOOK_SECRET || "",
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Webhook signature verification failed" },
       { status: 400 },
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Webhook processing failed" },
       { status: 500 },
@@ -57,7 +57,8 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     // Note: Ticket sending is currently handled by the frontend checkout page
     // The frontend calls /api/send-tickets after confirming payment
     // This webhook serves as a backup and for monitoring purposes
-  } catch (error) {}
+    console.log(`Payment succeeded for order: ${orderId}`);
+  } catch {}
 }
 
 async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
@@ -67,7 +68,8 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
 
     // TODO: Update order status to failed in database
     // TODO: Send failure notification email to buyer
-  } catch (error) {}
+    console.log(`Payment failed for order: ${orderId}`);
+  } catch {}
 }
 
 async function handleRefund(charge: Stripe.Charge) {
@@ -77,5 +79,6 @@ async function handleRefund(charge: Stripe.Charge) {
 
     // TODO: Update order status to refunded in database
     // TODO: Send refund notification email to buyer
-  } catch (error) {}
+    console.log(`Refund processed for order: ${orderId}`);
+  } catch {}
 }
