@@ -288,14 +288,14 @@ export default function AboutPage() {
           {/* Top: p1 + p2 */}
           <div className="about-bio-top">
             <p className="about-bio-text">
-              BePraize Sax is a celebrated saxophonist, vocalist, and music
+              <strong>Akintunde Adegoke,</strong> professionally known as
+              BePraize Sax, is a celebrated saxophonist, vocalist, and music
               minister whose artistry bridges the vibrant soul of African
               musical tradition with the refined sophistication of contemporary
               jazz. From his earliest years, music was not merely a pursuit — it
               was a calling. Raised in an environment steeped in rhythm and
-              worship, he discovered the saxophone as both his instrument and
-              his voice, a means through which he could speak what words alone
-              could not express.
+              worship, he his voice, a means through which he could speak what
+              words alone could not express.
             </p>
             <p className="about-bio-text">
               Over more than two decades of dedicated mastery, BePraize Sax has
@@ -346,7 +346,10 @@ export default function AboutPage() {
             </p>
 
             <div className="about-cta-row">
-              <Link href="/live-event" className="about-cta-primary">
+              <Link href="/contact" className="about-cta-primary">
+                Get in Touch
+              </Link>
+              {/* <Link href="/live-event" className="about-cta-primary">
                 <svg
                   width="15"
                   height="15"
@@ -360,10 +363,10 @@ export default function AboutPage() {
                   <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
                 Watch Live
-              </Link>
-              <Link href="/contact" className="about-cta-ghost">
+              </Link> */}
+              {/* <Link href="/contact" className="about-cta-ghost">
                 Get in Touch
-              </Link>
+              </Link> */}
             </div>
           </div>
         </div>
@@ -464,42 +467,6 @@ export default function AboutPage() {
             ))}
           </div>
         </section>
-      </div>
-
-      {/* ── CTA Banner ── */}
-      <div className="about-cta-banner">
-        <div className="about-cta-banner-inner">
-          <div>
-            <h2 className="about-cta-banner-title">
-              Ready to Experience
-              <br />
-              the Sound?
-            </h2>
-            <p className="about-cta-banner-sub">
-              Secure your tickets for the next live event.
-            </p>
-          </div>
-          <Link
-            href="/live-event"
-            className="about-cta-primary"
-            style={{ padding: "16px 36px", fontSize: 14 }}
-          >
-            Get Tickets
-            <svg
-              width="15"
-              height="15"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              viewBox="0 0 24 24"
-            >
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </Link>
-        </div>
       </div>
     </div>
   );

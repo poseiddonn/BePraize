@@ -5026,7 +5026,9 @@ export default function AdminPage() {
             <input
               autoFocus
               value={manualTicketInput}
-              onChange={(e) => setManualTicketInput(e.target.value)}
+              onChange={(e) =>
+                setManualTicketInput(e.target.value.toUpperCase())
+              }
               onKeyDown={(e) => {
                 if (e.key === "Enter" && manualTicketInput.trim()) {
                   submitManualCheckIn();
