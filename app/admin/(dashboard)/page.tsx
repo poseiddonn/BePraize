@@ -830,14 +830,14 @@ function EventForm({
         <input
           value={form.address}
           onChange={(e) => set("address", e.target.value)}
-          placeholder="e.g. 5040 Yonge St, Toronto, ON"
+          placeholder="e.g. 5040 Yonge St."
         />
       </FormGroup>
       <FormGroup label="City">
         <input
           value={form.city}
           onChange={(e) => set("city", e.target.value)}
-          placeholder="e.g. Toronto"
+          placeholder="e.g. Toronto, ON"
         />
       </FormGroup>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1628,8 +1628,8 @@ export default function AdminPage() {
     const now = new Date();
     const eventDate = new Date(`${event.date}T${event.time || "00:00"}`);
     const threeHoursBefore = new Date(eventDate.getTime() - 3 * 60 * 60 * 1000);
-    const tenHoursAfter = new Date(eventDate.getTime() + 10 * 60 * 60 * 1000);
-    return now >= threeHoursBefore && now <= tenHoursAfter;
+    const sixHoursAfter = new Date(eventDate.getTime() + 6 * 60 * 60 * 1000);
+    return now >= threeHoursBefore && now <= sixHoursAfter;
   };
 
   // Get available events for check-in (current and upcoming)
