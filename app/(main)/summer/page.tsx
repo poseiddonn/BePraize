@@ -1,12 +1,16 @@
+"use client";
+
 import Image from "next/image";
-import {
-  Users,
-  Clock,
-  Award,
-  Heart,
-  Keyboard,
-  Guitar,
-} from "lucide-react";
+import { useState } from "react";
+import { Users, Clock, Award, Heart, Keyboard, Guitar } from "lucide-react";
+import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { StripeCardElementChangeEvent } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
+);
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -366,6 +370,87 @@ const CSS = `
     background: #c53030;
   }
 
+  /* ── Payment Modal ── */
+  .summer-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+  }
+  .summer-modal {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .summer-modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: #f2f2f2;
+    margin-bottom: 8px;
+  }
+  .summer-modal-sub {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 24px;
+  }
+  .summer-modal-amount {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    color: #e53e3e;
+    margin-bottom: 24px;
+  }
+  .summer-card-field {
+    background: #0f0f0f;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+  }
+  .summer-modal-close {
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #888;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .summer-modal-close:hover {
+    border-color: #555;
+    color: #f2f2f2;
+  }
+  .summer-modal-submit {
+    width: 100%;
+    padding: 14px 32px;
+    background: #e53e3e;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .summer-modal-submit:hover {
+    background: #c53030;
+  }
+  .summer-modal-submit:disabled {
+    background: #2a2a2a;
+    color: #555;
+    cursor: not-allowed;
+  }
+
   /* ── CTA Section ── */
   .summer-cta {
     background: #141414;
@@ -489,7 +574,108 @@ const BENEFITS = [
   },
 ];
 
-export default function SummerPage() {
+function SummerPageContent() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [cardComplete, setCardComplete] = useState(false);
+  const stripe = useStripe();
+  const elements = useElements();
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.name && formData.email && formData.phone) {
+      setShowPaymentModal(true);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!stripe || !elements) {
+      alert("Payment system not loaded. Please refresh the page.");
+      return;
+    }
+
+    setProcessing(true);
+
+    try {
+      // Create payment intent for $50
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: 50,
+          currency: "cad",
+          orderId: `SUMMER-${Date.now()}`,
+          customer_email: formData.email,
+          metadata: {
+            type: "summer-registration",
+            name: formData.name,
+            phone: formData.phone,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create payment intent");
+      }
+
+      const { clientSecret } = await response.json();
+
+      // Confirm payment
+      const paymentResult = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement)!,
+          billing_details: {
+            name: formData.name,
+            email: formData.email,
+          },
+        },
+      });
+
+      if (paymentResult.error) {
+        alert(`Payment failed: ${paymentResult.error.message}`);
+        setProcessing(false);
+        return;
+      }
+
+      if (paymentResult.paymentIntent?.status !== "succeeded") {
+        alert("Payment processing failed. Please try again.");
+        setProcessing(false);
+        return;
+      }
+
+      // Submit registration data after successful payment
+      await fetch("/api/summer-registration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          paymentId: paymentResult.paymentIntent.id,
+        }),
+      });
+
+      alert("Registration successful! We'll contact you soon.");
+      setShowPaymentModal(false);
+      setFormData({ name: "", email: "", phone: "" });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An error occurred";
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleCardChange = (event: StripeCardElementChangeEvent) => {
+    setCardComplete(event.complete);
+  };
+
   return (
     <div className="summer-page">
       <style>{CSS}</style>
@@ -588,13 +774,17 @@ export default function SummerPage() {
             <p className="summer-form-sub">
               Fill out the form below to get started
             </p>
-            <form>
+            <form onSubmit={handleFormSubmit}>
               <div className="summer-form-group">
                 <label className="summer-form-label">Full Name</label>
                 <input
                   type="text"
                   className="summer-form-input"
                   placeholder="Your full name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -604,6 +794,10 @@ export default function SummerPage() {
                   type="email"
                   className="summer-form-input"
                   placeholder="your@email.com"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -613,6 +807,10 @@ export default function SummerPage() {
                   type="tel"
                   className="summer-form-input"
                   placeholder="+1 (555) 000-0000"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -623,6 +821,54 @@ export default function SummerPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Payment Modal ── */}
+      {showPaymentModal && (
+        <div className="summer-modal-overlay">
+          <div className="summer-modal">
+            <h3 className="summer-modal-title">Complete Registration</h3>
+            <p className="summer-modal-sub">
+              Pay the $50 registration fee to secure your spot
+            </p>
+            <p className="summer-modal-amount">$50</p>
+            <div className="summer-card-field">
+              <CardElement
+                options={{
+                  style: {
+                    base: {
+                      fontSize: "14px",
+                      color: "#f2f2f2",
+                      "::placeholder": {
+                        color: "#555",
+                      },
+                    },
+                    invalid: {
+                      color: "#e53e3e",
+                    },
+                  },
+                  hidePostalCode: true,
+                }}
+                onChange={handleCardChange}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
+                className="summer-modal-close"
+                onClick={() => setShowPaymentModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="summer-modal-submit"
+                onClick={handlePayment}
+                disabled={!cardComplete || processing}
+              >
+                {processing ? "Processing..." : "Pay $50"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Benefits ── */}
       <div className="summer-benefits">
@@ -663,5 +909,13 @@ export default function SummerPage() {
         </p>
       </footer>
     </div>
+  );
+}
+
+export default function SummerPage() {
+  return (
+    <Elements stripe={stripePromise}>
+      <SummerPageContent />
+    </Elements>
   );
 }
