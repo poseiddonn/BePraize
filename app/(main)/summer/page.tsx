@@ -247,6 +247,126 @@ const CSS = `
     text-transform: uppercase;
   }
 
+  /* ── Pricing Section ── */
+  .summer-pricing {
+    background: #141414;
+  }
+  .summer-pricing-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 80px 24px;
+  }
+  .summer-pricing-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(40px, 6vw, 64px);
+    line-height: 0.95;
+    color: #f2f2f2;
+    margin-bottom: 16px;
+  }
+  .summer-pricing-sub {
+    font-size: 14px;
+    color: #e53e3e;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+  }
+  .summer-pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+  @media (max-width: 600px) { .summer-pricing-grid { grid-template-columns: 1fr; } }
+  .summer-pricing-card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 32px;
+  }
+  .summer-pricing-amount {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    color: #e53e3e;
+    margin-bottom: 8px;
+  }
+  .summer-pricing-label {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 12px;
+  }
+  .summer-pricing-desc {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.6;
+  }
+
+  /* ── Registration Form ── */
+  .summer-form {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 40px;
+  }
+  .summer-form-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: #f2f2f2;
+    margin-bottom: 8px;
+  }
+  .summer-form-sub {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 24px;
+  }
+  .summer-form-group {
+    margin-bottom: 20px;
+  }
+  .summer-form-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 8px;
+  }
+  .summer-form-input {
+    width: 100%;
+    background: #0f0f0f;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #f2f2f2;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .summer-form-input:focus {
+    border-color: #e53e3e;
+  }
+  .summer-form-input::placeholder {
+    color: #555;
+  }
+  .summer-form-submit {
+    width: 100%;
+    padding: 14px 32px;
+    background: #e53e3e;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .summer-form-submit:hover {
+    background: #c53030;
+  }
+
   /* ── CTA Section ── */
   .summer-cta {
     background: #141414;
@@ -343,14 +463,7 @@ const INSTRUMENTS = [
   },
   {
     name: "Drums",
-    icon: (
-      <Image
-        src="/drum.svg"
-        alt="Drums"
-        width={24}
-        height={24}
-      />
-    ),
+    icon: <Image src="/drum.svg" alt="Drums" width={24} height={24} />,
   },
 ];
 
@@ -443,10 +556,78 @@ export default function SummerPage() {
         </div>
       </section>
 
+      {/* ── Pricing & Registration ── */}
+      <section className="summer-pricing" id="register">
+        <div className="summer-pricing-inner">
+          <h2 className="summer-pricing-title">
+            Pricing &
+            <br />
+            Registration
+          </h2>
+          <p className="summer-pricing-sub">Registration is Ongoing</p>
+
+          <div className="summer-pricing-grid">
+            <div className="summer-pricing-card">
+              <p className="summer-pricing-amount">$50</p>
+              <p className="summer-pricing-label">Registration Fee</p>
+              <p className="summer-pricing-desc">
+                One-time fee to secure your spot in our summer music program.
+              </p>
+            </div>
+            <div className="summer-pricing-card">
+              <p className="summer-pricing-amount">Per Hour</p>
+              <p className="summer-pricing-label">Class Billing</p>
+              <p className="summer-pricing-desc">
+                Classes are billed hourly. Contact us for detailed hourly
+                pricing information.
+              </p>
+            </div>
+          </div>
+
+          <div className="summer-form">
+            <h3 className="summer-form-title">Register Now</h3>
+            <p className="summer-form-sub">
+              Fill out the form below to get started
+            </p>
+            <form>
+              <div className="summer-form-group">
+                <label className="summer-form-label">Full Name</label>
+                <input
+                  type="text"
+                  className="summer-form-input"
+                  placeholder="Your full name"
+                  required
+                />
+              </div>
+              <div className="summer-form-group">
+                <label className="summer-form-label">Email</label>
+                <input
+                  type="email"
+                  className="summer-form-input"
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
+              <div className="summer-form-group">
+                <label className="summer-form-label">Phone Number</label>
+                <input
+                  type="tel"
+                  className="summer-form-input"
+                  placeholder="+1 (555) 000-0000"
+                  required
+                />
+              </div>
+              <button type="submit" className="summer-form-submit">
+                Submit Registration
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
       {/* ── Benefits ── */}
       <div className="summer-benefits">
         <section className="summer-section">
-          <p className="summer-section-label">Why Choose Us</p>
           <h2 className="summer-section-title">
             Program
             <br />
@@ -471,24 +652,6 @@ export default function SummerPage() {
         </p>
         <p className="summer-audience-sub">Music Is For Everyone</p>
       </div>
-
-      {/* ── CTA ── */}
-      <section className="summer-cta" id="contact">
-        <div className="summer-cta-inner">
-          <h2 className="summer-cta-title">
-            Start Your Musical Journey Today!
-          </h2>
-          <p className="summer-cta-text">
-            Build skills, boost confidence, and have fun while learning to play
-            the music you love. Spaces are limited for our summer program.
-          </p>
-          <div className="summer-cta-buttons">
-            <a href="tel:4168931269" className="summer-cta-primary">
-              <Phone size={16} /> Call 416-893-1269
-            </a>
-          </div>
-        </div>
-      </section>
 
       {/* ── Footer ── */}
       <footer className="summer-footer">
