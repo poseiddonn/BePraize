@@ -30,7 +30,14 @@ export default function Header() {
   const pathname = usePathname();
 
   // Pages where the header should be transparent over a hero
-  const heroPages = ["/", "/event", "/live-event", "/about", "/contact"];
+  const heroPages = [
+    "/",
+    "/event",
+    "/live-event",
+    "/about",
+    "/contact",
+    "/summer",
+  ];
   const isHeroPage = heroPages.some(
     (p) => pathname === p || pathname.startsWith("/live-event/"),
   );
