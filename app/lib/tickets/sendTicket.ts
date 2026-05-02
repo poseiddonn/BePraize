@@ -90,7 +90,7 @@ function buildEmailHtml(ticket: AttendeeTicket, tier: TierType): string {
           <tr>
             <td style="background:${c.accent};padding:12px 32px;text-align:center;">
               <p style="margin:0;font-size:18px;font-weight:800;color:${c.bg};letter-spacing:0.06em;">
-                ${tier === "Custom" ? ticket.tierName.toUpperCase() : tier.toUpperCase()} ${tier === "Diamond" ? "ACCESS" : tier === "Gold" ? "ENTRY" : tier === "Silver" ? "PASS" : "TICKET"}
+                ${ticket.tierName.toUpperCase()} TICKET
               </p>
             </td>
           </tr>
@@ -171,8 +171,8 @@ export async function sendTicketEmail(ticket: AttendeeTicket): Promise<void> {
   const pdfBytes = await generateTicket(ticketData);
   const pdfBuffer = Buffer.from(pdfBytes);
 
-  const filename = `BePraizeSax_${tier}_${ticket.ticketId}.pdf`;
-  const subject = `Your ${tier} Ticket — ${ticket.eventName}`;
+  const filename = `BePraizeSax_${ticket.tierName.replace(/\s+/g, "_")}_${ticket.ticketId}.pdf`;
+  const subject = `Your ${ticket.tierName} Ticket — ${ticket.eventName}`;
 
   await transporter.sendMail({
     from: `"BePraize Sax" <${process.env.GMAIL_USER}>`,

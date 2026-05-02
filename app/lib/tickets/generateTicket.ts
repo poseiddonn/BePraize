@@ -318,11 +318,9 @@ export async function generateTicket(data: TicketData): Promise<Uint8Array> {
   drawDiamondOrnament(page, PAD + 8, yStrip + STRIP_H / 2, t.stripText);
   drawDiamondOrnament(page, W - PAD - 8, yStrip + STRIP_H / 2, t.stripText);
 
-  // Use actual tier name if provided (for custom tiers), otherwise use theme default
-  const tierLabel =
-    data.tierName && data.tier === "Custom"
-      ? data.tierName.toUpperCase()
-      : t.tierLabel;
+  // Always use the actual tier name passed from the DB.
+  // Fall back to the theme default only if no name was provided.
+  const tierLabel = (data.tierName ?? t.tierLabel).toUpperCase();
   page.drawText(tierLabel, {
     x: centered(tierLabel, 24, bold, 0, W),
     y: yStrip + 16,
