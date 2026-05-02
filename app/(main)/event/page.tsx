@@ -23,15 +23,21 @@ type EventStatus = "past" | "today" | "upcoming";
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
-function getStatus(dateStr: string): EventStatus {
-  // Parse date string using local time components to avoid UTC interpretation
+function getStatus(dateStr: string, timeStr?: string): EventStatus {
+  // Parse date and time using local time components
   const [year, month, day] = dateStr.split("-").map(Number);
-  const eventDate = new Date(year, month - 1, day);
+  const [hours, minutes] = timeStr ? timeStr.split(":").map(Number) : [0, 0];
+  const eventStart = new Date(year, month - 1, day, hours, minutes);
+  const now = new Date();
+  // Event is past if current time is 8+ hours after event start
+  const eventEnd = new Date(eventStart.getTime() + 8 * 60 * 60 * 1000);
+  if (now >= eventEnd) return "past";
+  // Event is today if it's on the same calendar day
   const today = new Date();
-  eventDate.setHours(0, 0, 0, 0);
   today.setHours(0, 0, 0, 0);
-  if (eventDate.getTime() < today.getTime()) return "past";
-  if (eventDate.getTime() === today.getTime()) return "today";
+  const eventDay = new Date(year, month - 1, day);
+  eventDay.setHours(0, 0, 0, 0);
+  if (eventDay.getTime() === today.getTime()) return "today";
   return "upcoming";
 }
 
@@ -329,7 +335,7 @@ function SkeletonCard() {
 // ─── Event Card ───────────────────────────────────────────────────────────────
 
 function EventCard({ event }: { event: Event }) {
-  const status = getStatus(event.date);
+  const status = getStatus(event.date, event.time);
   const isPast = status === "past";
 
   return (
@@ -404,8 +410,8 @@ export default function EventsPage() {
       .then((data: Event[]) => {
         // Upcoming & today first (soonest → latest), then past (most recent → oldest)
         const sorted = [...data].sort((a, b) => {
-          const aIsPast = getStatus(a.date) === "past";
-          const bIsPast = getStatus(b.date) === "past";
+          const aIsPast = getStatus(a.date, a.time) === "past";
+          const bIsPast = getStatus(b.date, b.time) === "past";
           if (aIsPast !== bIsPast) return aIsPast ? 1 : -1;
           const dir = aIsPast ? -1 : 1;
           // Parse dates using local time components to avoid UTC interpretation
@@ -423,13 +429,13 @@ export default function EventsPage() {
 
   const filtered = events.filter((ev) => {
     if (filter === "all") return true;
-    const s = getStatus(ev.date);
+    const s = getStatus(ev.date, ev.time);
     if (filter === "upcoming") return s === "upcoming" || s === "today";
     return s === "past";
   });
 
   const upcomingCount = events.filter(
-    (e) => getStatus(e.date) !== "past",
+    (e) => getStatus(e.date, e.time) !== "past",
   ).length;
 
   return (

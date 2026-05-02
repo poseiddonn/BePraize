@@ -73,16 +73,19 @@ export default function Header() {
         const res = await fetch("/api/events");
         const events: Event[] = await res.json();
 
-        // Find the next upcoming event (first event with date >= today)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Find the next upcoming event (event start time + 8 hours > now)
+        const now = new Date();
 
         const nextEvent = events.find((event) => {
-          // Parse date string using local time components to avoid UTC interpretation
+          // Parse date and time using local time components
           const [year, month, day] = event.date.split("-").map(Number);
-          const eventDate = new Date(year, month - 1, day);
-          eventDate.setHours(0, 0, 0, 0);
-          return eventDate >= today;
+          const [hours, minutes] = event.time
+            ? event.time.split(":").map(Number)
+            : [0, 0];
+          const eventStart = new Date(year, month - 1, day, hours, minutes);
+          // Event is upcoming if current time is less than 8 hours after event start
+          const eventEnd = new Date(eventStart.getTime() + 8 * 60 * 60 * 1000);
+          return now < eventEnd;
         });
 
         setUpcomingEvent(nextEvent || null);
@@ -100,6 +103,15 @@ export default function Header() {
 
   const showLiveEventLink = !eventsLoading && upcomingEvent !== null;
 
+  // Check if current date is between May 1st and August 30th
+  const today = new Date();
+  const currentMonth = today.getMonth(); // 0-11 (January is 0)
+  const currentDay = today.getDate();
+  const showSummerLink =
+    (currentMonth === 4 && currentDay >= 1) || // May (month 4) from 1st
+    (currentMonth >= 5 && currentMonth <= 6) || // June (5) and July (6)
+    (currentMonth === 7 && currentDay <= 30); // August (7) until 30th
+
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/about", label: "About" },
@@ -107,6 +119,7 @@ export default function Header() {
     ...(showLiveEventLink
       ? [{ href: "/live-event", label: "Live Events" }]
       : []),
+    ...(showSummerLink ? [{ href: "/summer", label: "Summer" }] : []),
     { href: "/contact", label: "Contact" },
   ];
 

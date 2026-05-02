@@ -32,15 +32,21 @@ type EventStatus = "past" | "today" | "upcoming";
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
-function getStatus(dateStr: string): EventStatus {
-  // Parse date string using local time components to avoid UTC interpretation
+function getStatus(dateStr: string, timeStr?: string): EventStatus {
+  // Parse date and time using local time components
   const [year, month, day] = dateStr.split("-").map(Number);
-  const eventDate = new Date(year, month - 1, day);
+  const [hours, minutes] = timeStr ? timeStr.split(":").map(Number) : [0, 0];
+  const eventStart = new Date(year, month - 1, day, hours, minutes);
+  const now = new Date();
+  // Event is past if current time is 8+ hours after event start
+  const eventEnd = new Date(eventStart.getTime() + 8 * 60 * 60 * 1000);
+  if (now >= eventEnd) return "past";
+  // Event is today if it's on the same calendar day
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  eventDate.setHours(0, 0, 0, 0);
-  if (eventDate.getTime() < today.getTime()) return "past";
-  if (eventDate.getTime() === today.getTime()) return "today";
+  const eventDay = new Date(year, month - 1, day);
+  eventDay.setHours(0, 0, 0, 0);
+  if (eventDay.getTime() === today.getTime()) return "today";
   return "upcoming";
 }
 
@@ -449,7 +455,7 @@ export default function LiveEventPage() {
     );
   }
 
-  const status = getStatus(event.date);
+  const status = getStatus(event.date, event.time);
   const isPast = status === "past";
   const days = daysUntil(event.date);
   const lowestPrice =

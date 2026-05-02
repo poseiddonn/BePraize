@@ -289,16 +289,19 @@ export default function HomePage() {
         const res = await fetch("/api/events");
         const events: Event[] = await res.json();
 
-        // Find the next upcoming event (first event with date >= today)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Find the next upcoming event (event start time + 8 hours > now)
+        const now = new Date();
 
         const nextEvent = events.find((event) => {
-          // Parse date string using local time components to avoid UTC interpretation
+          // Parse date and time using local time components
           const [year, month, day] = event.date.split("-").map(Number);
-          const eventDate = new Date(year, month - 1, day);
-          eventDate.setHours(0, 0, 0, 0);
-          return eventDate >= today;
+          const [hours, minutes] = event.time
+            ? event.time.split(":").map(Number)
+            : [0, 0];
+          const eventStart = new Date(year, month - 1, day, hours, minutes);
+          // Event is upcoming if current time is less than 8 hours after event start
+          const eventEnd = new Date(eventStart.getTime() + 8 * 60 * 60 * 1000);
+          return now < eventEnd;
         });
 
         setUpcomingEvent(nextEvent || null);

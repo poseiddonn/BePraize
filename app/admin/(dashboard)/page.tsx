@@ -1661,7 +1661,7 @@ export default function AdminPage() {
     });
   };
 
-  // Get upcoming events (less than 6 hours after event start time)
+  // Get upcoming events (less than 1 hour after event start time)
   const getUpcomingEvents = (): Event[] => {
     const now = new Date();
     return events.filter((event) => {
@@ -1669,10 +1669,10 @@ export default function AdminPage() {
       const [year, month, day] = event.date.split("-").map(Number);
       const [hours, minutes] = event.time.split(":").map(Number);
       const eventDateTime = new Date(year, month - 1, day, hours, minutes);
-      const sixHoursAfter = new Date(
-        eventDateTime.getTime() + 6 * 60 * 60 * 1000,
+      const oneHourAfter = new Date(
+        eventDateTime.getTime() + 1 * 60 * 60 * 1000,
       );
-      return now < sixHoursAfter;
+      return now < oneHourAfter;
     });
   };
 

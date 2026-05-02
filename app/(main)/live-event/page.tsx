@@ -91,15 +91,26 @@ const CSS = `
 export default async function LiveEventIndex() {
   await connectDB();
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
 
-  // Find the soonest upcoming event (date >= today), sorted ascending
-  const upcoming = await EventModel.findOne({
-    date: { $gte: today.toISOString().split("T")[0] },
-  })
+  // Fetch all events and filter for upcoming (current time < event start + 8 hours)
+  const allEvents = await EventModel.find()
     .sort({ date: 1 })
-    .lean<{ _id: { toString(): string } }>();
+    .lean<{ _id: { toString(): string }; date: string; time?: string }[]>();
+
+  const upcoming = allEvents.find(
+    (event: { _id: { toString(): string }; date: string; time?: string }) => {
+      // Parse date and time using local time components
+      const [year, month, day] = event.date.split("-").map(Number);
+      const [hours, minutes] = event.time
+        ? event.time.split(":").map(Number)
+        : [0, 0];
+      const eventStart = new Date(year, month - 1, day, hours, minutes);
+      // Event is upcoming if current time is less than 8 hours after event start
+      const eventEnd = new Date(eventStart.getTime() + 8 * 60 * 60 * 1000);
+      return now < eventEnd;
+    },
+  );
 
   // Redirect immediately if there's an upcoming event
   if (upcoming) {
