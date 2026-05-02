@@ -2062,6 +2062,10 @@ export default function AdminPage() {
         }),
       );
 
+      // derive the event from the current events state and the transaction cart
+      const cartEventId = transactionModal.cart[0]?.eventId;
+      const matchedEvent = events.find((e) => e._id === cartEventId);
+
       const res = await fetch("/api/send-tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2070,10 +2074,17 @@ export default function AdminPage() {
           mailOption: transactionModal.mailOption,
           buyer: transactionModal.buyer,
           event: {
-            name: transactionModal.cart[0]?.eventName || "Event",
-            date: "Jun 13, 2026",
-            time: "4:00 PM",
-            venue: "National Event Centre",
+            name:
+              transactionModal.cart[0]?.eventName ||
+              matchedEvent?.name ||
+              "Event",
+            date: matchedEvent?.date,
+            time: matchedEvent?.time,
+            venue: matchedEvent
+              ? matchedEvent.address
+                ? `${matchedEvent.location}`
+                : matchedEvent.location
+              : undefined,
           },
           attendees,
         }),
@@ -5374,7 +5385,6 @@ export default function AdminPage() {
         <Modal
           title={`Event Statistics - ${concludedStatsModal.event.name}`}
           onClose={() => setConcludedStatsModal(null)}
-          wide
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Event Information */}
@@ -5384,8 +5394,8 @@ export default function AdminPage() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-                    gap: 14,
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 12,
                   }}
                 >
                   <DetailItem label="Event Name">
@@ -5431,9 +5441,8 @@ export default function AdminPage() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns:
-                        "repeat(auto-fit, minmax(200px, 1fr))",
-                      gap: 12,
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 10,
                     }}
                   >
                     {concludedStatsModal.stats.tiers.map((tier, index) => (
@@ -5442,15 +5451,15 @@ export default function AdminPage() {
                         style={{
                           background: C.sidebar,
                           border: `1px solid ${C.cardBorder}`,
-                          borderRadius: 10,
-                          padding: "14px",
+                          borderRadius: 8,
+                          padding: "12px 14px",
                         }}
                       >
                         <div
                           style={{
-                            fontSize: 13,
+                            fontSize: 12,
                             color: C.muted,
-                            marginBottom: 4,
+                            marginBottom: 2,
                           }}
                         >
                           {tier.name}
@@ -5458,14 +5467,14 @@ export default function AdminPage() {
                         <div
                           style={{
                             fontFamily: "'Syne', sans-serif",
-                            fontSize: 24,
+                            fontSize: 22,
                             fontWeight: 700,
                             color: C.accent,
                           }}
                         >
                           {tier.sold}
                         </div>
-                        <div style={{ fontSize: 12, color: C.muted }}>
+                        <div style={{ fontSize: 11, color: C.muted }}>
                           tickets sold
                         </div>
                       </div>
@@ -5531,9 +5540,8 @@ export default function AdminPage() {
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(180px, 1fr))",
-                        gap: 12,
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 10,
                       }}
                     >
                       {concludedStatsModal.stats.coupons.map(
@@ -5543,8 +5551,8 @@ export default function AdminPage() {
                             style={{
                               background: C.sidebar,
                               border: `1px solid ${C.cardBorder}`,
-                              borderRadius: 10,
-                              padding: "14px",
+                              borderRadius: 8,
+                              padding: "12px 14px",
                             }}
                           >
                             <div

@@ -76,8 +76,10 @@ export async function POST(request: NextRequest) {
         (item: { tierId?: string }) =>
           attendee.tierId && item.tierId === attendee.tierId,
       ) || cart[ticketIndex % cart.length];
+    // Always prefer the actual tier name stored in the order over whatever
+    // the client passes in `tier` (which may be a resolved type like "Diamond").
     const tierName =
-      tier || attendee.tierName || cartItem?.tierName || "Standard";
+      cartItem?.tierName || attendee.tierName || tier || "Standard";
 
     if (
       isSignedTicketFormat(ticketId, orderId) &&
