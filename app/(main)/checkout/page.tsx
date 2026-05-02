@@ -853,9 +853,8 @@ function StripeCardFieldsComponent({
         color: "#e53e3e",
       },
     },
-    address: {
-      country: "CA",
-    },
+    disableLink: true,
+    hidePostalCode: true,
   };
 
   return (
