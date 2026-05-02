@@ -60,9 +60,13 @@ interface BuyerInfo {
 
   phone: string;
 
+  country: string;
+
   province: string;
 
   city: string;
+
+  postalCode: string;
 }
 
 interface AttendeeInfo {
@@ -142,6 +146,67 @@ const PROVINCES = [
 
   "Yukon",
 ];
+
+const US_STATES = [
+  "Alabama",
+  "Alaska",
+  "Arizona",
+  "Arkansas",
+  "California",
+  "Colorado",
+  "Connecticut",
+  "Delaware",
+  "Florida",
+  "Georgia",
+  "Hawaii",
+  "Idaho",
+  "Illinois",
+  "Indiana",
+  "Iowa",
+  "Kansas",
+  "Kentucky",
+  "Louisiana",
+  "Maine",
+  "Maryland",
+  "Massachusetts",
+  "Michigan",
+  "Minnesota",
+  "Mississippi",
+  "Missouri",
+  "Montana",
+  "Nebraska",
+  "Nevada",
+  "New Hampshire",
+  "New Jersey",
+  "New Mexico",
+  "New York",
+  "North Carolina",
+  "North Dakota",
+  "Ohio",
+  "Oklahoma",
+  "Oregon",
+  "Pennsylvania",
+  "Rhode Island",
+  "South Carolina",
+  "South Dakota",
+  "Tennessee",
+  "Texas",
+  "Utah",
+  "Vermont",
+  "Virginia",
+  "Washington",
+  "West Virginia",
+  "Wisconsin",
+  "Wyoming",
+];
+
+const COUNTRIES = ["Canada", "US"];
+
+// Postal/Zip code validation patterns
+const POSTAL_CODE_PATTERNS = {
+  Canada: /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/,
+  US: /^\d{5}(-\d{4})?$/,
+};
 
 const TAX_RATE = 0.13;
 
@@ -867,9 +932,13 @@ export default function CheckoutPage() {
 
     phone: "",
 
+    country: "Canada",
+
     province: "Ontario",
 
     city: "",
+
+    postalCode: "",
   });
 
   // Build attendees list: one per ticket, sorted by tier price descending
@@ -1014,9 +1083,27 @@ export default function CheckoutPage() {
     }
 
     // Validate buyer information
-    if (!buyer.name || !buyer.email || !buyer.phone || !buyer.city) {
+    if (
+      !buyer.name ||
+      !buyer.email ||
+      !buyer.phone ||
+      !buyer.city ||
+      !buyer.country ||
+      !buyer.province ||
+      !buyer.postalCode
+    ) {
       alert("Please fill in all required buyer information.");
 
+      return;
+    }
+
+    // Validate postal/zip code format
+    const postalCodePattern =
+      POSTAL_CODE_PATTERNS[buyer.country as keyof typeof POSTAL_CODE_PATTERNS];
+    if (!postalCodePattern.test(buyer.postalCode)) {
+      alert(
+        `Invalid ${buyer.country === "Canada" ? "postal code" : "zip code"} format.`,
+      );
       return;
     }
 
@@ -1223,7 +1310,17 @@ export default function CheckoutPage() {
     }
   };
 
-  const isValid = buyer.name && buyer.email && buyer.phone && buyer.city;
+  const isValid =
+    buyer.name &&
+    buyer.email &&
+    buyer.phone &&
+    buyer.city &&
+    buyer.country &&
+    buyer.province &&
+    buyer.postalCode &&
+    POSTAL_CODE_PATTERNS[
+      buyer.country as keyof typeof POSTAL_CODE_PATTERNS
+    ].test(buyer.postalCode);
 
   const paymentOptions = [
     {
@@ -1353,6 +1450,56 @@ export default function CheckoutPage() {
 
             <div className="form-grid-2">
               <div className="form-group">
+                <label className="form-label">Country</label>
+
+                <select
+                  className="form-select"
+                  value={buyer.country}
+                  onChange={(e) =>
+                    setBuyer({
+                      ...buyer,
+                      country: e.target.value,
+                      province: "",
+                      postalCode: "",
+                    })
+                  }
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  {buyer.country === "Canada" ? "Province" : "State"}
+                </label>
+
+                <select
+                  className="form-select"
+                  value={buyer.province}
+                  onChange={(e) =>
+                    setBuyer({ ...buyer, province: e.target.value })
+                  }
+                >
+                  <option value="">
+                    Select {buyer.country === "Canada" ? "province" : "state"}
+                  </option>
+                  {(buyer.country === "Canada" ? PROVINCES : US_STATES).map(
+                    (p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-grid-2">
+              <div className="form-group">
                 <label className="form-label">City</label>
 
                 <div className="input-wrap">
@@ -1370,21 +1517,42 @@ export default function CheckoutPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Province</label>
+                <label className="form-label">
+                  {buyer.country === "Canada" ? "Postal Code" : "Zip Code"}
+                </label>
 
-                <select
-                  className="form-select"
-                  value={buyer.province}
-                  onChange={(e) =>
-                    setBuyer({ ...buyer, province: e.target.value })
-                  }
-                >
-                  {PROVINCES.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
+                <input
+                  className={`form-input${
+                    buyer.postalCode &&
+                    !POSTAL_CODE_PATTERNS[
+                      buyer.country as keyof typeof POSTAL_CODE_PATTERNS
+                    ].test(buyer.postalCode)
+                      ? " error"
+                      : ""
+                  }`}
+                  value={buyer.postalCode}
+                  onChange={(e) => {
+                    const value = e.target.value.toUpperCase();
+                    setBuyer({ ...buyer, postalCode: value });
+                  }}
+                  placeholder={buyer.country === "Canada" ? "A1A 1A1" : "12345"}
+                />
+                {buyer.postalCode &&
+                  !POSTAL_CODE_PATTERNS[
+                    buyer.country as keyof typeof POSTAL_CODE_PATTERNS
+                  ].test(buyer.postalCode) && (
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color: "#e53e3e",
+                        marginTop: "4px",
+                      }}
+                    >
+                      {buyer.country === "Canada"
+                        ? "Invalid format. Use A1A 1A1"
+                        : "Invalid format. Use 12345 or 12345-6789"}
+                    </div>
+                  )}
               </div>
             </div>
           </div>
