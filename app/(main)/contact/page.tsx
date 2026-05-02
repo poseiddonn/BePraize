@@ -434,6 +434,7 @@ export default function ContactPage() {
                   <option value="">Select a subject</option>
                   <option value="ticket-issue">Ticket Issue</option>
                   <option value="booking">Booking Inquiry</option>
+                  <option value="summer-program">Summer Program</option>
                   <option value="partnership">
                     Partnership / Collaboration
                   </option>
