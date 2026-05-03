@@ -39,7 +39,8 @@ type TabId =
   | "transactions"
   | "checkin"
   | "users"
-  | "concluded";
+  | "concluded"
+  | "summer-registrants";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ const NAV_ITEMS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "checkin", label: "Check-in", icon: QrCode },
   { id: "users", label: "Users", icon: Users },
   { id: "concluded", label: "Event Analytics", icon: BarChart3 },
+  { id: "summer-registrants", label: "Summer Registrants", icon: Users },
 ];
 
 export type TransactionStatus = "success" | "failed" | "pending" | "refunded";
@@ -144,6 +146,15 @@ interface Coupon {
   name: string;
   percentage: number;
   active: boolean;
+}
+
+interface SummerRegistrant {
+  _id: string;
+  name: string;
+  phone: string;
+  email: string;
+  createdAt?: string;
+  paymentId?: string;
 }
 
 interface DeleteConfirm {
@@ -1400,6 +1411,9 @@ export default function AdminPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txLoading, setTxLoading] = useState(false);
+  const [summerRegistrants, setSummerRegistrants] = useState<
+    SummerRegistrant[]
+  >([]);
 
   // Users state
   const [users, setUsers] = useState<
@@ -1775,6 +1789,17 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadSummerRegistrants = useCallback(async () => {
+    try {
+      const res = await fetch("/api/summer-registrants");
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setSummerRegistrants(data.registrants || []);
+    } catch {
+      /* silently fail — summer registrants tab shows empty */
+    }
+  }, []);
+
   useEffect(() => {
     if (tab === "transactions") {
       const t = setTimeout(() => {
@@ -1804,6 +1829,16 @@ export default function AdminPage() {
     }
     return;
   }, [tab, loadUsers]);
+
+  useEffect(() => {
+    if (tab === "summer-registrants") {
+      const t = setTimeout(() => {
+        loadSummerRegistrants();
+      }, 0);
+      return () => clearTimeout(t);
+    }
+    return;
+  }, [tab, loadSummerRegistrants]);
 
   // Fetch current user permissions and role
   useEffect(() => {
@@ -4632,6 +4667,62 @@ export default function AdminPage() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+            {/* SUMMER REGISTRANTS */}
+            {tab === "summer-registrants" &&
+              (currentUserRole === "admin" ||
+                hasPermission("summer-registrants")) && (
+                <div>
+                  <SectionHeader
+                    title="Summer Registrants"
+                    sub="List of successful summer program registrants"
+                  />
+                  <div className="table-scroll-wrap">
+                    <table
+                      style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        background: C.card,
+                        border: `1px solid ${C.cardBorder}`,
+                        borderRadius: 12,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <thead>
+                        <tr>
+                          <th style={TABLE_HEAD}>Name</th>
+                          <th style={TABLE_HEAD}>Phone</th>
+                          <th style={TABLE_HEAD}>Email</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {summerRegistrants.map((registrant) => (
+                          <tr key={registrant._id}>
+                            <td style={TABLE_CELL}>{registrant.name}</td>
+                            <td style={TABLE_CELL}>{registrant.phone}</td>
+                            <td style={TABLE_CELL}>{registrant.email}</td>
+                          </tr>
+                        ))}
+                        {summerRegistrants.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={3}
+                              style={{
+                                ...TABLE_CELL,
+                                textAlign: "center",
+                                color: C.muted,
+                                fontStyle: "italic",
+                              }}
+                            >
+                              No summer registrants found
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
 
