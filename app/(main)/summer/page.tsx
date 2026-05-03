@@ -585,6 +585,11 @@ function SummerPageContent() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [cardComplete, setCardComplete] = useState(false);
+  const [alertModal, setAlertModal] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error";
+  }>({ show: false, message: "", type: "success" });
   const stripe = useStripe();
   const elements = useElements();
 
@@ -603,7 +608,11 @@ function SummerPageContent() {
 
   const handlePayment = async () => {
     if (!stripe || !elements) {
-      alert("Payment system not loaded. Please refresh the page.");
+      setAlertModal({
+        show: true,
+        message: "Payment system not loaded. Please refresh the page.",
+        type: "error",
+      });
       return;
     }
 
@@ -645,13 +654,21 @@ function SummerPageContent() {
       });
 
       if (paymentResult.error) {
-        alert(`Payment failed: ${paymentResult.error.message}`);
+        setAlertModal({
+          show: true,
+          message: `Payment failed: ${paymentResult.error.message}`,
+          type: "error",
+        });
         setProcessing(false);
         return;
       }
 
       if (paymentResult.paymentIntent?.status !== "succeeded") {
-        alert("Payment processing failed. Please try again.");
+        setAlertModal({
+          show: true,
+          message: "Payment processing failed. Please try again.",
+          type: "error",
+        });
         setProcessing(false);
         return;
       }
@@ -675,7 +692,11 @@ function SummerPageContent() {
         throw new Error(errorData.error || "Failed to save registration data");
       }
 
-      alert("Registration successful! We'll contact you soon.");
+      setAlertModal({
+        show: true,
+        message: "Registration successful! We'll contact you soon.",
+        type: "success",
+      });
       setShowPaymentModal(false);
       setFormData({
         name: "",
@@ -687,7 +708,11 @@ function SummerPageContent() {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "An error occurred";
-      alert(`Error: ${errorMessage}`);
+      setAlertModal({
+        show: true,
+        message: `Error: ${errorMessage}`,
+        type: "error",
+      });
     } finally {
       setProcessing(false);
     }
@@ -837,7 +862,7 @@ function SummerPageContent() {
                     );
                     setFormData({ ...formData, phone: value });
                   }}
-                  pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$"
+                  pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4}$"
                   title="Please enter a valid phone number (e.g., +1 (555) 000-0000)"
                   required
                 />
@@ -922,7 +947,11 @@ function SummerPageContent() {
                               });
                             } else {
                               e.preventDefault();
-                              alert("You can select maximum 3 instruments");
+                              setAlertModal({
+                                show: true,
+                                message: "You can select maximum 3 instruments",
+                                type: "error",
+                              });
                             }
                           } else {
                             setFormData({
@@ -1017,6 +1046,31 @@ function SummerPageContent() {
                 {processing ? "Processing..." : "Pay $50"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Alert Modal ── */}
+      {alertModal.show && (
+        <div className="summer-modal-overlay">
+          <div className="summer-modal">
+            <h3
+              className="summer-modal-title"
+              style={{
+                color: alertModal.type === "success" ? "#10b981" : "#e53e3e",
+              }}
+            >
+              {alertModal.type === "success" ? "Success" : "Error"}
+            </h3>
+            <p className="summer-modal-sub">{alertModal.message}</p>
+            <button
+              className="summer-modal-submit"
+              onClick={() =>
+                setAlertModal({ show: false, message: "", type: "success" })
+              }
+            >
+              OK
+            </button>
           </div>
         </div>
       )}
