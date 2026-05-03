@@ -10,7 +10,6 @@ export async function GET() {
       createdAt: -1,
     });
 
-    console.log(`Found ${registrants.length} registrants in database`);
 
     return NextResponse.json({
       success: true,
