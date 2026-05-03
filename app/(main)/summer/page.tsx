@@ -579,6 +579,8 @@ function SummerPageContent() {
     name: "",
     email: "",
     phone: "",
+    parentPhone: "",
+    selectedInstruments: [] as string[],
   });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -588,7 +590,13 @@ function SummerPageContent() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.email && formData.phone) {
+    if (
+      formData.name &&
+      formData.email &&
+      formData.phone &&
+      formData.parentPhone &&
+      formData.selectedInstruments.length > 0
+    ) {
       setShowPaymentModal(true);
     }
   };
@@ -649,20 +657,33 @@ function SummerPageContent() {
       }
 
       // Submit registration data after successful payment
-      await fetch("/api/summer-registration", {
+      const regResponse = await fetch("/api/summer-registration", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
+          parentPhone: formData.parentPhone,
+          selectedInstruments: formData.selectedInstruments,
           paymentId: paymentResult.paymentIntent.id,
         }),
       });
 
+      if (!regResponse.ok) {
+        const errorData = await regResponse.json();
+        throw new Error(errorData.error || "Failed to save registration data");
+      }
+
       alert("Registration successful! We'll contact you soon.");
       setShowPaymentModal(false);
-      setFormData({ name: "", email: "", phone: "" });
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        parentPhone: "",
+        selectedInstruments: [],
+      });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "An error occurred";
@@ -808,11 +829,141 @@ function SummerPageContent() {
                   className="summer-form-input"
                   placeholder="+1 (555) 000-0000"
                   value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
+                  onChange={(e) => {
+                    // Only allow numbers, spaces, parentheses, hyphens, and plus sign
+                    const value = e.target.value.replace(
+                      /[^0-9\s\-\(\)\+]/g,
+                      "",
+                    );
+                    setFormData({ ...formData, phone: value });
+                  }}
+                  pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$"
+                  title="Please enter a valid phone number (e.g., +1 (555) 000-0000)"
                   required
                 />
+              </div>
+              <div className="summer-form-group">
+                <label className="summer-form-label">
+                  Parent/Guardian Phone
+                </label>
+                <input
+                  type="tel"
+                  required
+                  className="summer-form-input"
+                  placeholder="+1 (555) 000-0000"
+                  value={formData.parentPhone}
+                  onChange={(e) => {
+                    // Only allow numbers, spaces, parentheses, hyphens, and plus sign
+                    const value = e.target.value.replace(
+                      /[^0-9\s\-\(\)\+]/g,
+                      "",
+                    );
+                    setFormData({ ...formData, parentPhone: value });
+                  }}
+                  pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$"
+                  title="Please enter a valid phone number (e.g., +1 (555) 000-0000)"
+                />
+              </div>
+              <div className="summer-form-group">
+                <label className="summer-form-label">
+                  Select Instruments (You can choose up to 3)
+                </label>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "12px",
+                    marginTop: "8px",
+                  }}
+                >
+                  {[
+                    "Saxophone",
+                    "Keyboard",
+                    "Guitar",
+                    "Talking Drum",
+                    "Drums",
+                  ].map((instrument) => (
+                    <label
+                      key={instrument}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px",
+                        background: formData.selectedInstruments.includes(
+                          instrument,
+                        )
+                          ? "rgba(229, 62, 62, 0.2)"
+                          : "rgba(255, 255, 255, 0.05)",
+                        border: `1px solid ${
+                          formData.selectedInstruments.includes(instrument)
+                            ? "#e53e3e"
+                            : "rgba(255, 255, 255, 0.1)"
+                        }`,
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.selectedInstruments.includes(
+                          instrument,
+                        )}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            if (formData.selectedInstruments.length < 3) {
+                              setFormData({
+                                ...formData,
+                                selectedInstruments: [
+                                  ...formData.selectedInstruments,
+                                  instrument,
+                                ],
+                              });
+                            } else {
+                              e.preventDefault();
+                              alert("You can select maximum 3 instruments");
+                            }
+                          } else {
+                            setFormData({
+                              ...formData,
+                              selectedInstruments:
+                                formData.selectedInstruments.filter(
+                                  (i) => i !== instrument,
+                                ),
+                            });
+                          }
+                        }}
+                        style={{ margin: 0 }}
+                      />
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          color: "#f2f2f2",
+                          fontWeight: formData.selectedInstruments.includes(
+                            instrument,
+                          )
+                            ? "600"
+                            : "400",
+                        }}
+                      >
+                        {instrument}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {formData.selectedInstruments.length === 0 && (
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: "#e53e3e",
+                      marginTop: "4px",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    Please select at least one instrument
+                  </p>
+                )}
               </div>
               <button type="submit" className="summer-form-submit">
                 Submit Registration

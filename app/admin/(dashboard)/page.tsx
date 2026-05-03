@@ -153,6 +153,8 @@ interface SummerRegistrant {
   name: string;
   phone: string;
   email: string;
+  parentPhone: string;
+  selectedInstruments: string[];
   createdAt?: string;
   paymentId?: string;
 }
@@ -1792,10 +1794,15 @@ export default function AdminPage() {
   const loadSummerRegistrants = useCallback(async () => {
     try {
       const res = await fetch("/api/summer-registrants");
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        console.error("Failed to fetch summer registrants:", res.status);
+        throw new Error();
+      }
       const data = await res.json();
+      console.log("Summer registrants data:", data);
       setSummerRegistrants(data.registrants || []);
-    } catch {
+    } catch (error) {
+      console.error("Error loading summer registrants:", error);
       /* silently fail — summer registrants tab shows empty */
     }
   }, []);
@@ -4694,7 +4701,9 @@ export default function AdminPage() {
                         <tr>
                           <th style={TABLE_HEAD}>Name</th>
                           <th style={TABLE_HEAD}>Phone</th>
+                          <th style={TABLE_HEAD}>Parent/Guardian Phone</th>
                           <th style={TABLE_HEAD}>Email</th>
+                          <th style={TABLE_HEAD}>Selected Instruments</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -4702,13 +4711,18 @@ export default function AdminPage() {
                           <tr key={registrant._id}>
                             <td style={TABLE_CELL}>{registrant.name}</td>
                             <td style={TABLE_CELL}>{registrant.phone}</td>
+                            <td style={TABLE_CELL}>{registrant.parentPhone}</td>
                             <td style={TABLE_CELL}>{registrant.email}</td>
+                            <td style={TABLE_CELL}>
+                              {registrant.selectedInstruments?.join(", ") ||
+                                "-"}
+                            </td>
                           </tr>
                         ))}
                         {summerRegistrants.length === 0 && (
                           <tr>
                             <td
-                              colSpan={3}
+                              colSpan={5}
                               style={{
                                 ...TABLE_CELL,
                                 textAlign: "center",

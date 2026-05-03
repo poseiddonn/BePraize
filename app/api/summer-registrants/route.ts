@@ -10,6 +10,8 @@ export async function GET() {
       createdAt: -1,
     });
 
+    console.log(`Found ${registrants.length} registrants in database`);
+
     return NextResponse.json({
       success: true,
       registrants: registrants.map((registrant) => ({
@@ -18,7 +20,6 @@ export async function GET() {
       })),
     });
   } catch (error) {
-    console.error("Error fetching summer registrants:", error);
     return NextResponse.json(
       {
         error:

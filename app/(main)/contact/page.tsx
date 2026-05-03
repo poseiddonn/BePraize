@@ -401,8 +401,19 @@ export default function ContactPage() {
                   className="form-input"
                   type="tel"
                   value={form.phone}
-                  onChange={set("phone")}
+                  onChange={(e) => {
+                    // Only allow numbers, spaces, parentheses, hyphens, and plus sign
+                    const phoneValue = e.target.value.replace(
+                      /[^0-9\s\-\(\)\+]/g,
+                      "",
+                    );
+                    set("phone")({
+                      target: { value: phoneValue },
+                    } as React.ChangeEvent<HTMLInputElement>);
+                  }}
                   placeholder="+1 (555) 000-0000"
+                  pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$"
+                  title="Please enter a valid phone number (e.g., +1 (555) 000-0000)"
                   disabled={submitting}
                 />
               </div>

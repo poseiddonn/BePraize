@@ -809,8 +809,17 @@ function AttendeeBlock({
                   className="form-input"
                   type="tel"
                   value={value.phone}
-                  onChange={(e) => set("phone", e.target.value)}
+                  onChange={(e) => {
+                    // Only allow numbers, spaces, parentheses, hyphens, and plus sign
+                    const phoneValue = e.target.value.replace(
+                      /[^0-9\s\-\(\)\+]/g,
+                      "",
+                    );
+                    set("phone", phoneValue);
+                  }}
                   placeholder="+1 (555) 000-0000"
+                  pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$"
+                  title="Please enter a valid phone number (e.g., +1 (555) 000-0000)"
                   disabled={sameAsBuyer}
                 />
               </div>
@@ -1438,10 +1447,17 @@ export default function CheckoutPage() {
                     className="form-input"
                     type="tel"
                     value={buyer.phone}
-                    onChange={(e) =>
-                      setBuyer({ ...buyer, phone: e.target.value })
-                    }
+                    onChange={(e) => {
+                      // Only allow numbers, spaces, parentheses, hyphens, and plus sign
+                      const phoneValue = e.target.value.replace(
+                        /[^0-9\s\-\(\)\+]/g,
+                        "",
+                      );
+                      setBuyer({ ...buyer, phone: phoneValue });
+                    }}
                     placeholder="+1 (555) 000-0000"
+                    pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$"
+                    title="Please enter a valid phone number (e.g., +1 (555) 000-0000)"
                   />
                 </div>
               </div>
