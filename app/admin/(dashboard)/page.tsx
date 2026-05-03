@@ -1654,10 +1654,10 @@ export default function AdminPage() {
       const [year, month, day] = event.date.split("-").map(Number);
       const [hours, minutes] = event.time.split(":").map(Number);
       const eventDateTime = new Date(year, month - 1, day, hours, minutes);
-      const tenHoursAfter = new Date(
-        eventDateTime.getTime() + 10 * 60 * 60 * 1000,
+      const eightHoursAfter = new Date(
+        eventDateTime.getTime() + 8 * 60 * 60 * 1000,
       );
-      return now >= tenHoursAfter;
+      return now >= eightHoursAfter;
     });
   };
 
