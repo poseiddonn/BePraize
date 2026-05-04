@@ -13,12 +13,10 @@ import { signTicket } from "./ticketIdentity";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type TierType = "Diamond" | "Gold" | "Silver" | "Custom";
-
 export interface TicketData {
   eventName: string;
-  tier: TierType;
-  tierName?: string; // For custom tier names
+  tier: string;
+  tierName?: string;
   attendeeName: string;
   ticketId: string;
   orderNumber: string;
@@ -63,90 +61,31 @@ interface Theme {
   accessLabel: string;
 }
 
-const THEMES: Record<TierType, Theme> = {
-  Diamond: {
-    pageBg: [0.04, 0.03, 0.02],
-    headerBg: [0.07, 0.055, 0.015],
-    sectionBg: [0.065, 0.05, 0.01],
-    qrBg: [0.06, 0.045, 0.008],
-    footerBg: [0.035, 0.027, 0.005],
-    accentColor: [0.82, 0.67, 0.28],
-    headingColor: [0.96, 0.84, 0.48],
-    labelColor: [0.58, 0.46, 0.16],
-    valueColor: [0.94, 0.82, 0.44],
-    mutedColor: [0.45, 0.35, 0.12],
-    stripBg: [0.78, 0.62, 0.22],
-    stripText: [0.06, 0.045, 0.01],
-    borderColor: [0.78, 0.62, 0.22],
-    dividerColor: [0.35, 0.27, 0.07],
-    qrDark: "#C9A84C",
-    qrLight: "#0A0804",
-    tierLabel: "DIAMOND ACCESS",
-    // subLabel:    "BACKSTAGE PASS  ·  VIP LOUNGE",
-    accessLabel: "ALL AREAS",
-  },
-  Gold: {
-    pageBg: [0.13, 0.09, 0.01],
-    headerBg: [0.2, 0.14, 0.01],
-    sectionBg: [0.18, 0.12, 0.01],
-    qrBg: [0.16, 0.11, 0.01],
-    footerBg: [0.1, 0.07, 0.005],
-    accentColor: [0.88, 0.7, 0.15],
-    headingColor: [0.97, 0.88, 0.42],
-    labelColor: [0.68, 0.53, 0.1],
-    valueColor: [0.96, 0.85, 0.38],
-    mutedColor: [0.52, 0.4, 0.08],
-    stripBg: [0.88, 0.7, 0.15],
-    stripText: [0.1, 0.07, 0.005],
-    borderColor: [0.88, 0.7, 0.15],
-    dividerColor: [0.4, 0.3, 0.04],
-    qrDark: "#5A3800",
-    qrLight: "#F0C030",
-    tierLabel: "GOLD ENTRY",
-    // subLabel:    "PRIORITY SEATING  ·  EARLY ACCESS",
-    accessLabel: "PRIORITY",
-  },
-  Silver: {
-    pageBg: [0.09, 0.09, 0.1],
-    headerBg: [0.13, 0.13, 0.14],
-    sectionBg: [0.11, 0.11, 0.12],
-    qrBg: [0.1, 0.1, 0.11],
-    footerBg: [0.07, 0.07, 0.08],
-    accentColor: [0.72, 0.72, 0.76],
-    headingColor: [0.9, 0.9, 0.93],
-    labelColor: [0.5, 0.5, 0.54],
-    valueColor: [0.85, 0.85, 0.88],
-    mutedColor: [0.38, 0.38, 0.42],
-    stripBg: [0.55, 0.55, 0.6],
-    stripText: [0.08, 0.08, 0.09],
-    borderColor: [0.6, 0.6, 0.65],
-    dividerColor: [0.22, 0.22, 0.24],
-    qrDark: "#1A1A1E",
-    qrLight: "#C8C8CC",
-    tierLabel: "SILVER PASS",
-    // subLabel:    "GENERAL ADMISSION",
-    accessLabel: "GENERAL",
-  },
-  Custom: {
-    pageBg: [0.09, 0.09, 0.1],
-    headerBg: [0.13, 0.13, 0.14],
-    sectionBg: [0.11, 0.11, 0.12],
-    qrBg: [0.1, 0.1, 0.11],
-    footerBg: [0.07, 0.07, 0.08],
-    accentColor: [0.72, 0.72, 0.76],
-    headingColor: [0.9, 0.9, 0.93],
-    labelColor: [0.5, 0.5, 0.54],
-    valueColor: [0.85, 0.85, 0.88],
-    mutedColor: [0.38, 0.38, 0.42],
-    stripBg: [0.55, 0.55, 0.6],
-    stripText: [0.08, 0.08, 0.09],
-    borderColor: [0.6, 0.6, 0.65],
-    dividerColor: [0.22, 0.22, 0.24],
-    qrDark: "#1A1A1E",
-    qrLight: "#C8C8CC",
-    tierLabel: "CUSTOM", // Will be overridden by actual tier name
-    accessLabel: "STANDARD",
-  },
+const THEME: Theme = {
+  // Backgrounds - dark theme matching the provided image
+  pageBg: [0.05, 0.04, 0.03],
+  headerBg: [0.08, 0.06, 0.02],
+  sectionBg: [0.07, 0.055, 0.015],
+  qrBg: [0.065, 0.05, 0.01],
+  footerBg: [0.04, 0.03, 0.01],
+  // Text - gold accents
+  accentColor: [0.85, 0.7, 0.3],
+  headingColor: [0.98, 0.88, 0.5],
+  labelColor: [0.6, 0.48, 0.18],
+  valueColor: [0.95, 0.85, 0.45],
+  mutedColor: [0.5, 0.4, 0.15],
+  // Tier strip - gold
+  stripBg: [0.85, 0.7, 0.3],
+  stripText: [0.05, 0.04, 0.01],
+  // Lines / borders - gold
+  borderColor: [0.85, 0.7, 0.3],
+  dividerColor: [0.4, 0.3, 0.08],
+  // QR colors - gold on dark
+  qrDark: "#D4AF37",
+  qrLight: "#0D0A05",
+  // Labels
+  tierLabel: "VIP ACCESS",
+  accessLabel: "ALL AREAS",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -224,7 +163,7 @@ function drawDiamondOrnament(
 // ─── Main generator ───────────────────────────────────────────────────────────
 
 export async function generateTicket(data: TicketData): Promise<Uint8Array> {
-  const t = THEMES[data.tier];
+  const t = THEME;
   const doc = await PDFDocument.create();
   const page = doc.addPage([W, H]);
 
@@ -320,7 +259,7 @@ export async function generateTicket(data: TicketData): Promise<Uint8Array> {
 
   // Always use the actual tier name passed from the DB.
   // Fall back to the theme default only if no name was provided.
-  const tierLabel = (data.tierName ?? t.tierLabel).toUpperCase();
+  const tierLabel = (data.tierName || data.tier || t.tierLabel).toUpperCase();
   page.drawText(tierLabel, {
     x: centered(tierLabel, 24, bold, 0, W),
     y: yStrip + 16,
@@ -522,15 +461,4 @@ export async function generateTicket(data: TicketData): Promise<Uint8Array> {
   });
 
   return doc.save();
-}
-
-// ─── Tier resolver ────────────────────────────────────────────────────────────
-
-export function resolveTier(tierName: string): TierType {
-  const n = tierName.toLowerCase();
-  if (n.includes("diamond") || n.includes("platinum") || n.includes("vip"))
-    return "Diamond";
-  if (n.includes("gold")) return "Gold";
-  if (n.includes("silver")) return "Silver";
-  return "Custom";
 }

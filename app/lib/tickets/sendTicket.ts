@@ -1,10 +1,5 @@
 import nodemailer from "nodemailer";
-import {
-  generateTicket,
-  resolveTier,
-  TierType,
-  TicketData,
-} from "./generateTicket";
+import { generateTicket, TicketData } from "./generateTicket";
 
 // Create Nodemailer transporter with Gmail SMTP
 const transporter = nodemailer.createTransport({
@@ -32,37 +27,14 @@ export interface AttendeeTicket {
 
 // ─── HTML email template ──────────────────────────────────────────────────────
 
-function buildEmailHtml(ticket: AttendeeTicket, tier: TierType): string {
-  const tierColors: Record<
-    TierType,
-    { bg: string; accent: string; text: string; badge: string }
-  > = {
-    Diamond: {
-      bg: "#0a0804",
-      accent: "#C9A84C",
-      text: "#f0e8cc",
-      badge: "#1a1408",
-    },
-    Gold: {
-      bg: "#1a1001",
-      accent: "#DAA520",
-      text: "#f5e8a0",
-      badge: "#2a1a02",
-    },
-    Silver: {
-      bg: "#101012",
-      accent: "#A0A0AA",
-      text: "#d8d8dd",
-      badge: "#1e1e22",
-    },
-    Custom: {
-      bg: "#101012",
-      accent: "#A0A0AA",
-      text: "#d8d8dd",
-      badge: "#1e1e22",
-    },
+function buildEmailHtml(ticket: AttendeeTicket): string {
+  // Unified dark theme with gold accents
+  const c = {
+    bg: "#0d0a05",
+    accent: "#D4AF37",
+    text: "#f5e8a0",
+    badge: "#1a1408",
   };
-  const c = tierColors[tier];
 
   return `<!DOCTYPE html>
 <html>
@@ -154,12 +126,10 @@ function buildEmailHtml(ticket: AttendeeTicket, tier: TierType): string {
 // ─── Send a single ticket ─────────────────────────────────────────────────────
 
 export async function sendTicketEmail(ticket: AttendeeTicket): Promise<void> {
-  const tier = resolveTier(ticket.tierName);
-
   const ticketData: TicketData = {
     eventName: ticket.eventName,
-    tier,
-    tierName: ticket.tierName, // Pass actual tier name for custom tiers
+    tier: ticket.tierName,
+    tierName: ticket.tierName,
     attendeeName: ticket.attendeeName,
     ticketId: ticket.ticketId,
     orderNumber: ticket.orderNumber,
@@ -178,7 +148,7 @@ export async function sendTicketEmail(ticket: AttendeeTicket): Promise<void> {
     from: `"BePraize Sax" <${process.env.GMAIL_USER}>`,
     to: ticket.attendeeEmail,
     subject,
-    html: buildEmailHtml(ticket, tier),
+    html: buildEmailHtml(ticket),
     attachments: [
       {
         filename,
