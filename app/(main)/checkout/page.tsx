@@ -925,6 +925,8 @@ export default function CheckoutPage() {
 
   const [cardComplete, setCardComplete] = useState(false);
 
+  const [attendeeError, setAttendeeError] = useState("");
+
   const stripe = useStripe();
 
   const elements = useElements();
@@ -1139,6 +1141,18 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Validate at least one attendee field is filled
+    const hasAttendeeInfo = attendees.some(
+      (attendee) => attendee.name || attendee.email || attendee.phone,
+    );
+    if (!hasAttendeeInfo) {
+      setAttendeeError(
+        "Please fill in at least one attendee field (name, email, or phone).",
+      );
+      return;
+    }
+
+    setAttendeeError("");
     setPlacing(true);
 
     // Group attendees by event to handle multi-event orders correctly
@@ -1653,6 +1667,18 @@ export default function CheckoutPage() {
               <p className="section-sub" style={{ marginBottom: 18 }}>
                 One entry per ticket — sorted by tier
               </p>
+
+              {attendeeError && (
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#e53e3e",
+                    marginBottom: "12px",
+                  }}
+                >
+                  {attendeeError}
+                </div>
+              )}
 
               {flatAttendees.map((a, i) => (
                 <AttendeeBlock
