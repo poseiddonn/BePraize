@@ -959,6 +959,18 @@ export default function CheckoutPage() {
 
       tierName: item.tierName,
 
+      eventId: item.eventId,
+
+      eventName: item.eventName,
+
+      eventDate: item.eventDate,
+
+      eventTime: item.eventTime,
+
+      venue: item.venue,
+
+      price: item.price,
+
       idx: i,
     })),
   );
@@ -1117,26 +1129,62 @@ export default function CheckoutPage() {
 
     setPlacing(true);
 
-    // Get event name and date from first cart item
-    const firstEvent = cart[0];
-    const orderId = createOrderNumber(
-      firstEvent.eventName,
-      firstEvent.eventDate,
-    );
+    // Group attendees by event to handle multi-event orders correctly
     const usedTicketIds = new Set<string>();
     const attendeesWithTickets = attendees.map((attendee, index) => ({
       ...attendee,
       tierId: flatAttendees[index]?.tierId,
       tierName: flatAttendees[index]?.tierName,
-      ticketId: createTicketId(orderId, usedTicketIds),
+      eventId: flatAttendees[index]?.eventId,
     }));
+
+    // Group attendees by eventId and assign per-event order IDs and ticket IDs
+    const attendeesByEvent = new Map<string, typeof attendeesWithTickets>();
+    const eventOrderIds = new Map<string, string>();
+
+    attendeesWithTickets.forEach((attendee, index) => {
+      const attendeeTier = flatAttendees[index];
+      if (attendeeTier?.eventId) {
+        if (!attendeesByEvent.has(attendeeTier.eventId)) {
+          attendeesByEvent.set(attendeeTier.eventId, []);
+          // Generate order ID for this event using event name and date
+          const eventOrder = createOrderNumber(
+            attendeeTier.eventName,
+            attendeeTier.eventDate,
+          );
+          eventOrderIds.set(attendeeTier.eventId, eventOrder);
+        }
+        attendeesByEvent.get(attendeeTier.eventId)!.push(attendee);
+      }
+    });
+
+    // Assign ticket IDs using per-event order IDs
+    const attendeesWithTicketIds = attendeesWithTickets.map(
+      (attendee, index) => {
+        const attendeeTier = flatAttendees[index];
+        const eventId = attendeeTier?.eventId;
+        const eventOrderId = eventId ? eventOrderIds.get(eventId) : "";
+        return {
+          ...attendee,
+          ticketId: eventOrderId
+            ? createTicketId(eventOrderId, usedTicketIds)
+            : "",
+        };
+      },
+    );
+
+    // Use the first event's order ID as the master order ID for the order record
+    const firstEventId = Array.from(eventOrderIds.values())[0];
+    const masterOrderId =
+      firstEventId ||
+      createOrderNumber("MULTI", new Date().toISOString().split("T")[0]);
 
     const order = {
       cart,
 
       buyer,
 
-      attendees: attendeesWithTickets,
+      attendees: attendeesWithTicketIds,
 
       appliedCoupon,
 
@@ -1152,7 +1200,7 @@ export default function CheckoutPage() {
 
       total,
 
-      orderId,
+      orderId: masterOrderId,
 
       createdAt: new Date().toISOString(),
     };
@@ -1171,12 +1219,12 @@ export default function CheckoutPage() {
 
             currency: "cad",
 
-            orderId,
+            orderId: masterOrderId,
 
             customer_email: buyer.email,
 
             metadata: {
-              orderId,
+              orderId: masterOrderId,
 
               eventNames: cart.map((c) => c.eventName).join(", "),
             },
@@ -1237,57 +1285,65 @@ export default function CheckoutPage() {
         }),
       });
 
-      // Send tickets after order confirmation
-
-      const sendTicketsRes = await fetch("/api/send-tickets", {
-        method: "POST",
-
-        headers: { "Content-Type": "application/json" },
-
-        body: JSON.stringify({
-          orderId: order.orderId,
-
-          mailOption: order.mailOption, // "buyer" | "attendees" | "both"
-
-          buyer: { name: order.buyer.name, email: order.buyer.email },
-
-          event: {
-            name: firstEvent.eventName,
-            date: firstEvent.eventDate,
-            time: firstEvent.eventTime,
-            venue: firstEvent.venue,
-          },
-
-          attendees: order.attendees.map((a, i) => {
-            // Find the corresponding cart item for this attendee
-
-            const attendeeTier = flatAttendees[i];
-
-            const cartItem = cart.find(
-              (item) => item.tierId === attendeeTier.tierId,
-            );
-
-            return {
-              name: a.name,
-
-              email: a.email,
-
-              tierName: cartItem?.tierName || "Standard", // "Silver", "Gold", "Platinum" etc.
-
-              ticketId: a.ticketId,
-
-              price: cartItem ? `$${cartItem.price.toFixed(2)}` : "$200.00",
-            };
-          }),
-        }),
+      // Send tickets after order confirmation - group by event
+      const eventsMap = new Map<string, (typeof cart)[0]>();
+      cart.forEach((item) => {
+        eventsMap.set(item.eventId, item);
       });
 
-      if (!sendTicketsRes.ok) {
-        const errorData = await sendTicketsRes.json();
-        alert(
-          `Warning: Tickets were not sent via email. Error: ${errorData.error || "Unknown error"}`,
-        );
-      } else {
+      // Group attendees by eventId
+      const attendeesByEvent = new Map<string, typeof order.attendees>();
+      order.attendees.forEach((attendee, index) => {
+        const attendeeTier = flatAttendees[index];
+        if (attendeeTier?.eventId) {
+          if (!attendeesByEvent.has(attendeeTier.eventId)) {
+            attendeesByEvent.set(attendeeTier.eventId, []);
+          }
+          attendeesByEvent.get(attendeeTier.eventId)!.push(attendee);
+        }
+      });
+
+      // Send tickets for each event group
+      for (const [eventId, eventAttendees] of attendeesByEvent) {
+        const eventDetails = eventsMap.get(eventId);
+        const eventOrderId = eventOrderIds.get(eventId);
+        if (!eventDetails || !eventOrderId) continue;
+
+        const sendTicketsRes = await fetch("/api/send-tickets", {
+          method: "POST",
+
+          headers: { "Content-Type": "application/json" },
+
+          body: JSON.stringify({
+            orderId: eventOrderId,
+
+            mailOption: order.mailOption,
+
+            buyer: { name: order.buyer.name, email: order.buyer.email },
+
+            event: {
+              name: eventDetails.eventName,
+              date: eventDetails.eventDate,
+              time: eventDetails.eventTime,
+              venue: eventDetails.venue,
+            },
+
+            attendees: eventAttendees.map((a) => ({
+              name: a.name,
+              email: a.email,
+              tierName: a.tierName || "Standard",
+              ticketId: a.ticketId,
+              price: `$${eventDetails.price.toFixed(2)}`,
+            })),
+          }),
+        });
+
+        if (!sendTicketsRes.ok) {
+          const errorData = await sendTicketsRes.json();
+          alert(
+            `Warning: Tickets for ${eventDetails.eventName} were not sent via email. Error: ${errorData.error || "Unknown error"}`,
+          );
+        }
       }
 
       // Store order in session
