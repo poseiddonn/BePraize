@@ -12,6 +12,9 @@ import {
   MessageSquare,
 } from "lucide-react";
 
+// Phone validation pattern (North American format: at least 10 digits)
+const PHONE_PATTERN = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4}$/;
+
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
   .contact-page *, .contact-page *::before, .contact-page *::after { box-sizing: border-box; }
@@ -231,6 +234,7 @@ export default function ContactPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [phoneError, setPhoneError] = useState("");
 
   const set =
     (k: keyof typeof form) =>
@@ -245,6 +249,17 @@ export default function ContactPage() {
     e.preventDefault();
     setSubmitting(true);
     setStatus("idle");
+
+    // Validate phone format
+    if (form.phone && !PHONE_PATTERN.test(form.phone)) {
+      setPhoneError(
+        "Please enter a valid phone number (e.g., +1 (555) 000-0000)",
+      );
+      setSubmitting(false);
+      return;
+    }
+
+    setPhoneError("");
     await new Promise((r) => setTimeout(r, 1200));
     setStatus("success");
     setForm({ name: "", email: "", phone: "", subject: "", message: "" });
@@ -398,7 +413,11 @@ export default function ContactPage() {
               <div className="input-wrap">
                 <Phone size={14} className="input-icon" />
                 <input
-                  className="form-input"
+                  className={`form-input${
+                    form.phone && !PHONE_PATTERN.test(form.phone)
+                      ? " error"
+                      : ""
+                  }`}
                   type="tel"
                   value={form.phone}
                   onChange={(e) => {
@@ -410,12 +429,24 @@ export default function ContactPage() {
                     set("phone")({
                       target: { value: phoneValue },
                     } as React.ChangeEvent<HTMLInputElement>);
+                    setPhoneError("");
                   }}
                   placeholder="+1 (555) 000-0000"
-                  pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$"
+                  pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4}$"
                   title="Please enter a valid phone number (e.g., +1 (555) 000-0000)"
                   disabled={submitting}
                 />
+                {phoneError && (
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "#e53e3e",
+                      marginTop: "4px",
+                    }}
+                  >
+                    {phoneError}
+                  </div>
+                )}
               </div>
             </div>
 

@@ -210,6 +210,10 @@ const POSTAL_CODE_PATTERNS = {
   US: /^\d{5}(-\d{4})?$/,
 };
 
+// Phone validation pattern (North American format: at least 10 digits)
+const PHONE_PATTERN =
+  /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4}$/;
+
 const TAX_RATE = 0.13;
 
 const CSS = `
@@ -927,6 +931,8 @@ export default function CheckoutPage() {
 
   const [attendeeError, setAttendeeError] = useState("");
 
+  const [buyerPhoneError, setBuyerPhoneError] = useState("");
+
   const stripe = useStripe();
 
   const elements = useElements();
@@ -1140,6 +1146,16 @@ export default function CheckoutPage() {
       );
       return;
     }
+
+    // Validate phone format
+    if (!PHONE_PATTERN.test(buyer.phone)) {
+      setBuyerPhoneError(
+        "Please enter a valid phone number (e.g., +1 (555) 000-0000)",
+      );
+      return;
+    }
+
+    setBuyerPhoneError("");
 
     // Validate at least one attendee field is filled
     const hasAttendeeInfo = attendees.some(
@@ -1528,7 +1544,11 @@ export default function CheckoutPage() {
                   <Phone size={14} className="input-icon" />
 
                   <input
-                    className="form-input"
+                    className={`form-input${
+                      buyer.phone && !PHONE_PATTERN.test(buyer.phone)
+                        ? " error"
+                        : ""
+                    }`}
                     type="tel"
                     value={buyer.phone}
                     onChange={(e) => {
@@ -1538,12 +1558,24 @@ export default function CheckoutPage() {
                         "",
                       );
                       setBuyer({ ...buyer, phone: phoneValue });
+                      setBuyerPhoneError("");
                     }}
                     placeholder="+1 (555) 000-0000"
-                    pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$"
+                    pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4}$"
                     title="Please enter a valid phone number (e.g., +1 (555) 000-0000)"
                   />
                 </div>
+                {buyerPhoneError && (
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "#e53e3e",
+                      marginTop: "4px",
+                    }}
+                  >
+                    {buyerPhoneError}
+                  </div>
+                )}
               </div>
             </div>
 

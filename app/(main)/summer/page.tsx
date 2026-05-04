@@ -12,6 +12,9 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
 );
 
+// Phone validation pattern (North American format: at least 10 digits)
+const PHONE_PATTERN = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4}$/;
+
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
   .summer-page *, .summer-page *::before, .summer-page *::after { box-sizing: border-box; }
@@ -590,11 +593,31 @@ function SummerPageContent() {
     message: string;
     type: "success" | "error";
   }>({ show: false, message: "", type: "success" });
+  const [phoneError, setPhoneError] = useState("");
+  const [parentPhoneError, setParentPhoneError] = useState("");
   const stripe = useStripe();
   const elements = useElements();
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate phone formats
+    if (formData.phone && !PHONE_PATTERN.test(formData.phone)) {
+      setPhoneError(
+        "Please enter a valid phone number (e.g., +1 (555) 000-0000)",
+      );
+      return;
+    }
+    if (formData.parentPhone && !PHONE_PATTERN.test(formData.parentPhone)) {
+      setParentPhoneError(
+        "Please enter a valid phone number (e.g., +1 (555) 000-0000)",
+      );
+      return;
+    }
+
+    setPhoneError("");
+    setParentPhoneError("");
+
     if (
       formData.name &&
       formData.email &&
@@ -876,7 +899,11 @@ function SummerPageContent() {
                 <label className="summer-form-label">Phone Number</label>
                 <input
                   type="tel"
-                  className="summer-form-input"
+                  className={`summer-form-input${
+                    formData.phone && !PHONE_PATTERN.test(formData.phone)
+                      ? " error"
+                      : ""
+                  }`}
                   placeholder="+1 (555) 000-0000"
                   value={formData.phone}
                   onChange={(e) => {
@@ -886,11 +913,23 @@ function SummerPageContent() {
                       "",
                     );
                     setFormData({ ...formData, phone: value });
+                    setPhoneError("");
                   }}
                   pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4}$"
                   title="Please enter a valid phone number (e.g., +1 (555) 000-0000)"
                   required
                 />
+                {phoneError && (
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "#e53e3e",
+                      marginTop: "4px",
+                    }}
+                  >
+                    {phoneError}
+                  </div>
+                )}
               </div>
               <div className="summer-form-group">
                 <label className="summer-form-label">
@@ -899,7 +938,12 @@ function SummerPageContent() {
                 <input
                   type="tel"
                   required
-                  className="summer-form-input"
+                  className={`summer-form-input${
+                    formData.parentPhone &&
+                    !PHONE_PATTERN.test(formData.parentPhone)
+                      ? " error"
+                      : ""
+                  }`}
                   placeholder="+1 (555) 000-0000"
                   value={formData.parentPhone}
                   onChange={(e) => {
@@ -909,10 +953,22 @@ function SummerPageContent() {
                       "",
                     );
                     setFormData({ ...formData, parentPhone: value });
+                    setParentPhoneError("");
                   }}
-                  pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$"
+                  pattern="^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4}$"
                   title="Please enter a valid phone number (e.g., +1 (555) 000-0000)"
                 />
+                {parentPhoneError && (
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "#e53e3e",
+                      marginTop: "4px",
+                    }}
+                  >
+                    {parentPhoneError}
+                  </div>
+                )}
               </div>
               <div className="summer-form-group">
                 <label className="summer-form-label">
