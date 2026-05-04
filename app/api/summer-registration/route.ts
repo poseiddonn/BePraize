@@ -37,14 +37,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if registrant already exists
+    // Check if registrant with this name already exists
     const existingRegistrant = await SummerRegistrantModel.findOne({
-      $or: [{ email }, { phone }],
+      name: name.trim(),
     });
 
     if (existingRegistrant) {
       return NextResponse.json(
-        { error: "A registration with this email or phone already exists" },
+        { error: "A registration with this name already exists" },
         { status: 409 },
       );
     }

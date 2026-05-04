@@ -593,7 +593,7 @@ function SummerPageContent() {
   const stripe = useStripe();
   const elements = useElements();
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
       formData.name &&
@@ -602,7 +602,32 @@ function SummerPageContent() {
       formData.parentPhone &&
       formData.selectedInstruments.length > 0
     ) {
-      setShowPaymentModal(true);
+      // Validate name before showing payment modal
+      try {
+        const response = await fetch("/api/summer-registration/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: formData.name }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          setAlertModal({
+            show: true,
+            message: errorData.error || "Validation failed",
+            type: "error",
+          });
+          return;
+        }
+
+        setShowPaymentModal(true);
+      } catch {
+        setAlertModal({
+          show: true,
+          message: "Failed to validate registration. Please try again.",
+          type: "error",
+        });
+      }
     }
   };
 
