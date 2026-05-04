@@ -1840,6 +1840,16 @@ export default function AdminPage() {
   }, [tab, loadCheckIns]);
 
   useEffect(() => {
+    if (tab === "concluded") {
+      const t = setTimeout(() => {
+        loadCheckIns();
+      }, 0);
+      return () => clearTimeout(t);
+    }
+    return;
+  }, [tab, loadCheckIns]);
+
+  useEffect(() => {
     if (tab === "users") {
       const t = setTimeout(() => {
         loadUsers();
@@ -5544,7 +5554,7 @@ export default function AdminPage() {
       {/* Concluded Events Stats Modal */}
       {concludedStatsModal && (
         <Modal
-          title={`Event Statistics - ${concludedStatsModal.event.name}`}
+          title={`Event Statistics`}
           onClose={() => setConcludedStatsModal(null)}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
