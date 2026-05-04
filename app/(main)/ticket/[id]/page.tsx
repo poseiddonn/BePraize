@@ -58,6 +58,7 @@ interface CartItem {
   tierName: string;
   price: number;
   quantity: number;
+  coupons: string[]; // Array of coupon codes that apply to this event
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -554,6 +555,7 @@ export default function TicketPage() {
         tierName: t.name,
         price: t.price,
         quantity: quantities[t._id],
+        coupons: event.coupons || [],
       }));
 
     // Persist to localStorage (replace with Zustand/Context cart store later)

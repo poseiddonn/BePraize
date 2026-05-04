@@ -41,6 +41,8 @@ interface CartItem {
   price: number;
 
   quantity: number;
+
+  coupons: string[]; // Array of coupon codes that apply to this event
 }
 
 interface Coupon {
@@ -1086,7 +1088,17 @@ export default function CheckoutPage() {
   );
 
   const discount = appliedCoupon
-    ? subtotal * (appliedCoupon.percentage / 100)
+    ? cart.reduce((acc, item) => {
+        // Only apply discount to items whose event has this coupon in its coupons array
+        const isEligible =
+          item.coupons && item.coupons.includes(appliedCoupon.name);
+        if (isEligible) {
+          return (
+            acc + item.price * item.quantity * (appliedCoupon.percentage / 100)
+          );
+        }
+        return acc;
+      }, 0)
     : 0;
 
   const taxable = subtotal - discount;
