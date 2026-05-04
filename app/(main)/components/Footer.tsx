@@ -100,7 +100,7 @@ export default function Footer() {
         }
         .footer-brand-tagline {
           font-size: 14px;
-          color: #555;
+          color: #888;
           line-height: 1.6;
           max-width: 240px;
         }
@@ -184,7 +184,7 @@ export default function Footer() {
         }
         .footer-copy {
           font-size: 12px;
-          color: #333;
+          color: #666;
         }
         .footer-legal {
           display: flex; gap: 16px;

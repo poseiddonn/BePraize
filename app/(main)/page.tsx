@@ -146,7 +146,7 @@ const CSS = `
   .hp-section-label {
     font-size: 10px; font-weight: 700;
     letter-spacing: 0.2em; text-transform: uppercase;
-    color: #e53e3e; margin-bottom: 14px;
+    color: #ff6b6b; margin-bottom: 14px;
   }
   .hp-bio-title {
     font-family: 'Bebas Neue', sans-serif;
@@ -166,12 +166,12 @@ const CSS = `
     display: inline-flex; align-items: center; gap: 8px;
     font-size: 13px; font-weight: 700;
     letter-spacing: 0.06em; text-transform: uppercase;
-    color: #e53e3e; text-decoration: none;
-    border-bottom: 1px solid rgba(229,62,62,0.3);
+    color: #ff6b6b; text-decoration: none;
+    border-bottom: 1px solid rgba(255,107,107,0.3);
     padding-bottom: 2px;
     transition: border-color 0.15s;
   }
-  .hp-bio-link:hover { border-color: #e53e3e; }
+  .hp-bio-link:hover { border-color: #ff6b6b; }
 
   .hp-bio-image-wrap {
     position: relative;
