@@ -184,7 +184,7 @@ export default function Footer() {
         }
         .footer-copy {
           font-size: 12px;
-          color: #666;
+          color: #fff;
         }
         .footer-legal {
           display: flex; gap: 16px;
