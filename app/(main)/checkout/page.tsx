@@ -1231,6 +1231,8 @@ export default function CheckoutPage() {
           cart: cart,
           total: total,
           mailOption: order.mailOption,
+          appliedCoupon: order.appliedCoupon,
+          paymentMethod: order.paymentMethod,
           createdAt: new Date().toISOString(),
         }),
       });

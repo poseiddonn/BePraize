@@ -1665,16 +1665,28 @@ export default function AdminPage() {
   // Get concluded events (10+ hours after event start time)
   const getConcludedEvents = (): Event[] => {
     const now = new Date();
-    return events.filter((event) => {
-      if (!event.date || !event.time) return false;
-      const [year, month, day] = event.date.split("-").map(Number);
-      const [hours, minutes] = event.time.split(":").map(Number);
-      const eventDateTime = new Date(year, month - 1, day, hours, minutes);
-      const eightHoursAfter = new Date(
-        eventDateTime.getTime() + 8 * 60 * 60 * 1000,
-      );
-      return now >= eightHoursAfter;
-    });
+    return events
+      .filter((event) => {
+        if (!event.date || !event.time) return false;
+        const [year, month, day] = event.date.split("-").map(Number);
+        const [hours, minutes] = event.time.split(":").map(Number);
+        const eventDateTime = new Date(year, month - 1, day, hours, minutes);
+        const eightHoursAfter = new Date(
+          eventDateTime.getTime() + 8 * 60 * 60 * 1000,
+        );
+        return now >= eightHoursAfter;
+      })
+      .sort((a, b) => {
+        // Sort by event date/time descending (most recent first)
+        if (!a.date || !a.time || !b.date || !b.time) return 0;
+        const [aYear, aMonth, aDay] = a.date.split("-").map(Number);
+        const [aHours, aMinutes] = a.time.split(":").map(Number);
+        const [bYear, bMonth, bDay] = b.date.split("-").map(Number);
+        const [bHours, bMinutes] = b.time.split(":").map(Number);
+        const aDateTime = new Date(aYear, aMonth - 1, aDay, aHours, aMinutes);
+        const bDateTime = new Date(bYear, bMonth - 1, bDay, bHours, bMinutes);
+        return bDateTime.getTime() - aDateTime.getTime();
+      });
   };
 
   // Get upcoming events (less than 1 hour after event start time)
@@ -4971,6 +4983,50 @@ export default function AdminPage() {
                   </div>
                 </ModalInfoPanel>
               </div>
+
+              {/* Coupon Applied */}
+              {transactionModal.appliedCoupon && (
+                <div>
+                  <ModalSectionTitle>Coupon Applied</ModalSectionTitle>
+                  <ModalInfoPanel>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 8,
+                          background: C.successDim,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Tag size={20} color={C.success} />
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            fontSize: "0.95rem",
+                            marginBottom: "0.25rem",
+                          }}
+                        >
+                          {transactionModal.appliedCoupon.name}
+                        </div>
+                        <div style={{ fontSize: "0.85rem", color: C.muted }}>
+                          {transactionModal.appliedCoupon.percentage}% discount
+                        </div>
+                      </div>
+                    </div>
+                  </ModalInfoPanel>
+                </div>
+              )}
 
               {/* Ticket Tiers */}
               <div>

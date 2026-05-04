@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       paymentId,
     });
 
-    
+    await registrant.save();
 
     return NextResponse.json({
       success: true,
