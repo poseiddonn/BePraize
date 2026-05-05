@@ -1,4 +1,6 @@
+"use client";
 
+import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -268,6 +270,23 @@ const CSS = `
 `;
 
 export default function AboutPage() {
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          }
+        });
+      },
+      { threshold: 0.1 },
+    );
+
+    document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="about-page">
       <style>{CSS}</style>
@@ -307,7 +326,7 @@ export default function AboutPage() {
           </div>
 
           {/* Top: p1 + p2 */}
-          <div className="about-bio-top">
+          <div className="about-bio-top reveal reveal-up">
             <p className="about-bio-text">
               <strong>Akintunde Adegoke,</strong> professionally known as
               BePraize Sax, is a celebrated saxophonist, vocalist, and music
@@ -331,7 +350,7 @@ export default function AboutPage() {
           </div>
 
           {/* Image — right column on desktop, between p2 & p3 on mobile */}
-          <div className="about-bio-image">
+          <div className="about-bio-image reveal reveal-right">
             <div className="about-image-wrap">
               <Image
                 src="/home-bio.jpg"
@@ -345,7 +364,7 @@ export default function AboutPage() {
           </div>
 
           {/* Bottom: p3 + p4 + CTAs */}
-          <div className="about-bio-bottom">
+          <div className="about-bio-bottom reveal reveal-up">
             <p className="about-bio-text">
               Now based in Canada, BePraize Sax continues to expand the
               frontiers of what African-inspired music can sound and feel like
@@ -402,7 +421,7 @@ export default function AboutPage() {
             { num: "10+", label: "Albums Released" },
             { num: "50K+", label: "Fans Worldwide" },
           ].map(({ num, label }) => (
-            <div key={label} className="about-stat">
+            <div key={label} className="about-stat reveal reveal-up">
               <p className="about-stat-num">{num}</p>
               <p className="about-stat-label">{label}</p>
             </div>
@@ -480,7 +499,7 @@ export default function AboutPage() {
                 text: "From rehearsal rooms to concert halls, the standard is always the same — nothing less than the very best.",
               },
             ].map(({ icon, title, text }) => (
-              <div key={title} className="about-value-card">
+              <div key={title} className="about-value-card reveal reveal-up">
                 <div className="about-value-icon">{icon}</div>
                 <h3 className="about-value-title">{title}</h3>
                 <p className="about-value-text">{text}</p>

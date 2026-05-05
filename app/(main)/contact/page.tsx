@@ -254,7 +254,7 @@ export default function ContactPage() {
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
@@ -385,7 +385,7 @@ export default function ContactPage() {
       {/* ── Body ── */}
       <div className="contact-body">
         {/* Form */}
-        <div className="contact-form-wrap">
+        <div className="contact-form-wrap reveal reveal-left">
           <p className="contact-section-label">Send a Message</p>
           <h2 className="contact-form-title">
             We&#39;ll Get Back
@@ -569,7 +569,7 @@ export default function ContactPage() {
         </div>
 
         {/* Info sidebar */}
-        <div className="contact-info">
+        <div className="contact-info reveal reveal-right">
           <p className="contact-section-label">Contact Details</p>
           <h2 className="contact-info-title">
             How to

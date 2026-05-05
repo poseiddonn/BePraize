@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Users, Clock, Award, Heart, Keyboard, Guitar } from "lucide-react";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { StripeCardElementChangeEvent } from "@stripe/stripe-js";
@@ -24,6 +24,26 @@ const CSS = `
     color: #f2f2f2;
     font-family: 'DM Sans', sans-serif;
   }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transition: all 0.8s ease-out;
+  }
+  .reveal.visible {
+    opacity: 1;
+  }
+  .reveal-up { transform: translateY(30px); }
+  .reveal-up.visible { transform: translateY(0); }
+  .reveal-left { transform: translateX(-30px); }
+  .reveal-left.visible { transform: translateX(0); }
+  .reveal-right { transform: translateX(30px); }
+  .reveal-right.visible { transform: translateX(0); }
 
   /* ── Hero ── */
   .summer-hero {
@@ -578,6 +598,23 @@ const BENEFITS = [
 ];
 
 function SummerPageContent() {
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          }
+        });
+      },
+      { threshold: 0.1 },
+    );
+
+    document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -827,7 +864,7 @@ function SummerPageContent() {
         </h2>
         <div className="summer-instruments-grid">
           {INSTRUMENTS.map(({ name, icon }) => (
-            <div key={name} className="summer-instrument-card">
+            <div key={name} className="summer-instrument-card reveal reveal-up">
               <div className="summer-instrument-icon">{icon}</div>
               <p className="summer-instrument-name">{name}</p>
             </div>
@@ -846,14 +883,14 @@ function SummerPageContent() {
           <p className="summer-pricing-sub">Registration is Ongoing</p>
 
           <div className="summer-pricing-grid">
-            <div className="summer-pricing-card">
+            <div className="summer-pricing-card reveal reveal-left">
               <p className="summer-pricing-amount">$50</p>
               <p className="summer-pricing-label">Registration Fee</p>
               <p className="summer-pricing-desc">
                 One-time fee to secure your spot in our summer music program.
               </p>
             </div>
-            <div className="summer-pricing-card">
+            <div className="summer-pricing-card reveal reveal-right">
               <p className="summer-pricing-amount">Per Hour</p>
               <p className="summer-pricing-label">Class Billing</p>
               <p className="summer-pricing-desc">
@@ -863,7 +900,7 @@ function SummerPageContent() {
             </div>
           </div>
 
-          <div className="summer-form">
+          <div className="summer-form reveal reveal-up">
             <h3 className="summer-form-title">Register Now</h3>
             <p className="summer-form-sub">
               Fill out the form below to get started
@@ -1166,7 +1203,7 @@ function SummerPageContent() {
           </h2>
           <div className="summer-benefits-grid">
             {BENEFITS.map(({ icon, title, text }) => (
-              <div key={title} className="summer-benefit-card">
+              <div key={title} className="summer-benefit-card reveal reveal-up">
                 <div className="summer-benefit-icon">{icon}</div>
                 <h3 className="summer-benefit-title">{title}</h3>
                 <p className="summer-benefit-text">{text}</p>
