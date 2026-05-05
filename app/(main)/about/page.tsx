@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import Link from "next/link";
 
@@ -10,6 +11,26 @@ const CSS = `
     color: #f2f2f2;
     font-family: 'DM Sans', sans-serif;
   }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transition: all 0.8s ease-out;
+  }
+  .reveal.visible {
+    opacity: 1;
+  }
+  .reveal-up { transform: translateY(30px); }
+  .reveal-up.visible { transform: translateY(0); }
+  .reveal-left { transform: translateX(-30px); }
+  .reveal-left.visible { transform: translateX(0); }
+  .reveal-right { transform: translateX(30px); }
+  .reveal-right.visible { transform: translateX(0); }
 
   /* ── Hero ── */
   .about-hero {

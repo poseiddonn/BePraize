@@ -44,6 +44,7 @@ const CSS = `
   }
   .hp-hero-bg {
     position: absolute; inset: 0;
+    animation: fadeIn 1.2s ease-out forwards;
   }
   .hp-hero-bg img {
     width: 100%; height: 100%;
@@ -71,18 +72,27 @@ const CSS = `
     font-size: 11px; font-weight: 700;
     letter-spacing: 0.2em; text-transform: uppercase;
     color: #e53e3e; margin-bottom: 14px;
+    animation: fadeInUp 0.8s ease-out forwards;
+    animation-delay: 0.3s;
+    opacity: 0;
   }
   .hp-hero-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(64px, 10vw, 128px);
     line-height: 0.9; letter-spacing: 0.02em;
     color: #fff; margin-bottom: 20px;
+    animation: fadeInUp 0.8s ease-out forwards;
+    animation-delay: 0.5s;
+    opacity: 0;
   }
   .hp-hero-sub {
     font-size: clamp(15px, 2vw, 18px);
     color: rgba(255,255,255,0.7);
     max-width: 520px; line-height: 1.7;
     margin-bottom: 36px;
+    animation: fadeInUp 0.8s ease-out forwards;
+    animation-delay: 0.7s;
+    opacity: 0;
   }
   .hp-hero-cta {
     display: inline-flex; align-items: center; gap: 10px;
@@ -92,6 +102,9 @@ const CSS = `
     font-size: 14px; font-weight: 700;
     letter-spacing: 0.05em; text-transform: uppercase;
     transition: background 0.15s, transform 0.1s;
+    animation: fadeInUp 0.8s ease-out forwards;
+    animation-delay: 0.9s;
+    opacity: 0;
   }
   .hp-hero-cta:hover { background: #c53030; }
   .hp-hero-cta:active { transform: scale(0.97); }
@@ -106,6 +119,33 @@ const CSS = `
   }
   .hp-scroll-hint span { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; }
   @keyframes bobble { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(6px)} }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeInLeft {
+    from { opacity: 0; transform: translateX(-30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fadeInRight {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transition: all 0.8s ease-out;
+  }
+  .reveal.visible {
+    opacity: 1;
+  }
+  .reveal-up { transform: translateY(30px); }
+  .reveal-up.visible { transform: translateY(0); }
+  .reveal-left { transform: translateX(-30px); }
+  .reveal-left.visible { transform: translateX(0); }
+  .reveal-right { transform: translateX(30px); }
+  .reveal-right.visible { transform: translateX(0); }
 
   /* ── Concert banner ── */
   .hp-banner {
@@ -235,15 +275,15 @@ const CSS = `
   .gallery-item img {
     width: 100%; height: 100%;
     object-fit: cover; display: block;
-    transition: transform 0.5s ease;
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
-  .gallery-item:hover img { transform: scale(1.06); }
+  .gallery-item:hover img { transform: scale(1.1); }
   .gallery-item-overlay {
     position: absolute; inset: 0;
     background: rgba(0,0,0,0);
-    transition: background 0.3s;
+    transition: background 0.4s ease;
   }
-  .gallery-item:hover .gallery-item-overlay { background: rgba(229,62,62,0.12); }
+  .gallery-item:hover .gallery-item-overlay { background: rgba(229,62,62,0.2); }
 
   .hp-gallery-dots {
     max-width: 1200px; margin: 24px auto 0;
@@ -282,6 +322,24 @@ export default function HomePage() {
   const [galleryPage, setGalleryPage] = useState(0);
   const [upcomingEvent, setUpcomingEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Scroll reveal observer
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     async function fetchEvents() {
@@ -402,7 +460,7 @@ export default function HomePage() {
 
       {/* ── Biography ── */}
       <section className="hp-bio">
-        <div>
+        <div className="reveal reveal-left">
           <p className="hp-section-label">Biography</p>
           <h2 className="hp-bio-title">
             The Artist
@@ -423,7 +481,7 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <div style={{ position: "relative" }}>
+        <div style={{ position: "relative" }} className="reveal reveal-right">
           <div className="hp-bio-image-wrap">
             <Image
               src="/home-bio.jpg"
@@ -439,7 +497,7 @@ export default function HomePage() {
 
       {/* ── Gallery ── */}
       <section className="hp-gallery">
-        <div className="hp-gallery-header">
+        <div className="hp-gallery-header reveal reveal-up">
           <div>
             <p className="hp-section-label">Gallery</p>
             <h2 className="hp-gallery-title">
@@ -472,7 +530,11 @@ export default function HomePage() {
 
         <div className="hp-gallery-grid">
           {visibleImages.map((src, i) => (
-            <div key={`${galleryPage}-${i}`} className="gallery-item">
+            <div
+              key={`${galleryPage}-${i}`}
+              className="gallery-item reveal reveal-up"
+              style={{ transitionDelay: `${i * 100}ms` }}
+            >
               <Image
                 src={src}
                 alt={`Gallery ${galleryPage * PER_PAGE + i + 1}`}
