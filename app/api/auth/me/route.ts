@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/app/lib/mongodb";
 import { UserModel } from "@/app/lib/models/User";
+import {
+  ADMIN_SESSION_COOKIE,
+  verifyAdminSessionToken,
+} from "@/app/lib/auth/adminSession";
 
 function normalizePermissions(value: unknown) {
   return Array.isArray(value) ? value.filter((p) => typeof p === "string") : [];
@@ -8,18 +12,13 @@ function normalizePermissions(value: unknown) {
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    const session = await verifyAdminSessionToken(
+      request.cookies.get(ADMIN_SESSION_COOKIE)?.value,
+    );
 
-    // Get the auth cookie from login
-    const authCookie = request.cookies.get("admin-auth")?.value;
-
-    if (!authCookie || authCookie !== "true") {
+    if (!session) {
       return NextResponse.json({ error: "No session found" }, { status: 401 });
     }
-
-    const username = request.cookies.get("admin-username")?.value;
-    const accountType = request.cookies.get("admin-account-type")?.value;
-    const userId = request.cookies.get("admin-user-id")?.value;
 
     const connection = await connectDB();
     const db = connection.connection.db;
@@ -28,14 +27,12 @@ export async function GET(request: NextRequest) {
     }
 
     let admin = null;
-    let isAdminAccount = false;
-    const adminsCollection = db.collection("admins");
+    const isAdminAccount = session.accountType === "admin";
 
-    if (accountType === "user" && userId) {
-      admin = await UserModel.findById(userId).select(
+    if (session.accountType === "user" && session.userId) {
+      admin = await UserModel.findById(session.userId).select(
         "username email permissions isActive",
       );
-      isAdminAccount = false;
 
       if (admin?.isActive === false) {
         return NextResponse.json(
@@ -43,31 +40,11 @@ export async function GET(request: NextRequest) {
           { status: 401 },
         );
       }
-    } else if (accountType === "admin" && username) {
+    } else if (session.accountType === "admin") {
+      const adminsCollection = db.collection("admins");
       admin = await adminsCollection.findOne(
-        { username: { $regex: new RegExp(`^${username}$`, "i") } },
+        { username: { $regex: new RegExp(`^${session.username}$`, "i") } },
         { projection: { username: 1, email: 1 } },
-      );
-      isAdminAccount = Boolean(admin);
-    } else if (username) {
-      admin = await adminsCollection.findOne(
-        { username: { $regex: new RegExp(`^${username}$`, "i") } },
-        { projection: { username: 1, email: 1 } },
-      );
-      isAdminAccount = Boolean(admin);
-
-      if (!admin) {
-        admin = await UserModel.findOne(
-          { username: { $regex: new RegExp(`^${username}$`, "i") } },
-          {
-            projection: { username: 1, email: 1, permissions: 1, isActive: 1 },
-          },
-        );
-      }
-    } else {
-      return NextResponse.json(
-        { error: "No user session found" },
-        { status: 401 },
       );
     }
 

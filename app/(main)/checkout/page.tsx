@@ -1370,6 +1370,8 @@ export default function CheckoutPage() {
               venue: eventDetails.venue,
             },
 
+            ticketDeliveryToken: savedOrder.ticketDeliveryTokens?.[eventOrderId],
+
             attendees: eventAttendees.map((a) => ({
               name: a.name,
               email: a.email,

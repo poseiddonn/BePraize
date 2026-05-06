@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ADMIN_SESSION_COOKIE } from "@/app/lib/auth/adminSession";
 
 function clearCookie(response: NextResponse, name: string) {
   response.cookies.set(name, "", {
@@ -20,6 +21,7 @@ export async function POST() {
     });
 
     // Clear the authentication cookie with multiple methods to ensure it's removed
+    clearCookie(response, ADMIN_SESSION_COOKIE);
     clearCookie(response, "admin-auth");
     clearCookie(response, "admin-username");
     clearCookie(response, "admin-account-type");
@@ -36,6 +38,7 @@ export async function POST() {
       { status: 500 },
     );
 
+    clearCookie(response, ADMIN_SESSION_COOKIE);
     clearCookie(response, "admin-auth");
     clearCookie(response, "admin-username");
     clearCookie(response, "admin-account-type");

@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { connectDB } from "@/app/lib/mongodb";
 import { OrderModel } from "@/app/lib/models/Order";
 import { TicketTierModel } from "@/app/lib/models/TicketTier";
+import { createTicketDeliveryToken } from "@/app/lib/tickets/ticketDelivery";
 
 // Define TransactionStatus type to match admin interface
 type TransactionStatus = "success" | "failed" | "pending" | "refunded";
@@ -23,6 +24,7 @@ export async function GET() {
         buyerEmail?: string;
         attendees?: Array<{ name?: string; email?: string; phone?: string }>;
         cart?: Array<{ eventName?: string; quantity?: number }>;
+        status?: TransactionStatus;
         total?: number;
         createdAt?: string | Date;
       }) => {
@@ -34,7 +36,7 @@ export async function GET() {
           orderId: order.orderId,
           buyerName,
           buyerEmail,
-          status: "success" as TransactionStatus, // All orders in DB are successful payments
+          status: order.status || ("success" as TransactionStatus),
           total: order.total || 0,
           ticketCount:
             order.attendees?.length ||
@@ -107,8 +109,13 @@ export async function POST(request: NextRequest) {
     // If no amount, treat as order creation/update
     await connectDB();
 
-    // Check stock availability before processing order
-    if (body.cart && Array.isArray(body.cart)) {
+    const existingOrder = body.orderId
+      ? await OrderModel.exists({ orderId: body.orderId })
+      : null;
+    const shouldAdjustStock = !existingOrder;
+
+    // Check stock availability before processing new orders.
+    if (shouldAdjustStock && body.cart && Array.isArray(body.cart)) {
       for (const item of body.cart) {
         if (item.tierId && item.quantity) {
           const tier = await TicketTierModel.findById(item.tierId);
@@ -141,8 +148,8 @@ export async function POST(request: NextRequest) {
       { upsert: true, returnDocument: "after", runValidators: true },
     ).lean();
 
-    // Decrement stock for each ticket tier in the cart
-    if (body.cart && Array.isArray(body.cart)) {
+    // Decrement stock for each ticket tier only once per order.
+    if (shouldAdjustStock && body.cart && Array.isArray(body.cart)) {
       for (const item of body.cart) {
         if (item.tierId && item.quantity) {
           await TicketTierModel.findByIdAndUpdate(
@@ -154,7 +161,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json(order, { status: 201 });
+    return NextResponse.json(
+      {
+        ...order,
+        ticketDeliveryToken: createTicketDeliveryToken(body.orderId),
+      },
+      { status: 201 },
+    );
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Failed to process request";

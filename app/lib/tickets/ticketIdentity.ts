@@ -16,10 +16,17 @@ export function createTicketId(orderNumber: string) {
   return `${orderNumber}-${fourDigits()}`;
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export function isSignedTicketFormat(ticketId: string, orderNumber: string) {
+  const isLegacyOrderNumber = /^BP-202606\d{4}$/.test(orderNumber);
+  const isEventOrderNumber = /^[A-Z]{2}-\d{10}$/.test(orderNumber);
+
   return (
-    /^BP-202606\d{4}$/.test(orderNumber) &&
-    new RegExp(`^${orderNumber}-\\d{4}$`).test(ticketId)
+    (isLegacyOrderNumber || isEventOrderNumber) &&
+    new RegExp(`^${escapeRegex(orderNumber)}-\\d{4}$`).test(ticketId)
   );
 }
 

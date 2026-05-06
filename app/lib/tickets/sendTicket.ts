@@ -181,7 +181,7 @@ export async function sendAllTickets(
     // Send to ALL attendees (including buyer if they are an attendee)
     for (const ticket of tickets) {
       if (ticket.attendeeEmail) {
-        promises.push(sendTicketEmail(ticket).catch(() => {}));
+        promises.push(sendTicketEmail(ticket));
       }
     }
   } else if (mailOption === "both") {
@@ -189,7 +189,7 @@ export async function sendAllTickets(
     for (const ticket of tickets) {
       // Send to attendee if email is different from buyer
       if (ticket.attendeeEmail && ticket.attendeeEmail !== buyerEmail) {
-        promises.push(sendTicketEmail(ticket).catch(() => {}));
+        promises.push(sendTicketEmail(ticket));
       }
     }
     // Send to buyer separately
@@ -199,7 +199,7 @@ export async function sendAllTickets(
           ...ticket,
           attendeeEmail: buyerEmail,
           // Preserve the original attendee name, don't override with buyer name
-        }).catch(() => {}),
+        }),
       );
     }
   }
@@ -213,7 +213,7 @@ export async function sendAllTickets(
           ...ticket,
           attendeeEmail: buyerEmail,
           // Preserve the original attendee name, don't override with buyer name
-        }).catch(() => {}),
+        }),
       );
     }
   }

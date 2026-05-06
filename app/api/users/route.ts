@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/app/lib/mongodb";
 import { UserModel } from "@/app/lib/models/User";
+import { hashPassword } from "@/app/lib/auth/password";
 
 export async function GET() {
   try {
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
     const user = new UserModel({
       username,
       email: email || null, // Handle optional email
-      password, // In production, you should hash this
+      password: hashPassword(password),
       role: "user",
       permissions: permissions || [],
     });

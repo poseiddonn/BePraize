@@ -1,7 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { sendAllTickets, AttendeeTicket } from "@/app/lib/tickets/sendTicket";
 import { createTicketId } from "@/app/lib/tickets/ticketIdentity";
+import { verifyTicketDeliveryToken } from "@/app/lib/tickets/ticketDelivery";
+import {
+  ADMIN_SESSION_COOKIE,
+  verifyAdminSessionToken,
+} from "@/app/lib/auth/adminSession";
 
 export interface SendTicketsBody {
   orderId: string;
@@ -25,6 +30,8 @@ export interface SendTicketsBody {
   };
 
   // One entry per ticket (quantity already expanded)
+
+  ticketDeliveryToken?: string;
 
   attendees: {
     name: string;
@@ -61,11 +68,21 @@ function cleanTicketId(
   return nextTicketId;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body: SendTicketsBody = await req.json();
 
-    const { orderId, mailOption, buyer, event, attendees } = body;
+    const { orderId, mailOption, buyer, event, attendees, ticketDeliveryToken } = body;
+
+    const adminSession = await verifyAdminSessionToken(
+      req.cookies.get(ADMIN_SESSION_COOKIE)?.value,
+    );
+    const canSendTickets =
+      Boolean(adminSession) || verifyTicketDeliveryToken(orderId, ticketDeliveryToken);
+
+    if (!canSendTickets) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     if (!orderId || !buyer?.email || !attendees?.length) {
       return NextResponse.json(
