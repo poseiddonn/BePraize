@@ -2121,7 +2121,7 @@ export default function AdminPage() {
             email: attendee.email || transactionModal.buyer.email,
             tierName: cartItem.tierName,
             ticketId,
-            price: cartItem.price.toString(),
+            price: `$${cartItem.price.toFixed(2)}`,
           };
         }),
       );

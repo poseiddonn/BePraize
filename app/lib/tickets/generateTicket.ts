@@ -1,11 +1,4 @@
-import {
-  PDFDocument,
-  rgb,
-  StandardFonts,
-  PDFFont,
-  PDFPage,
-  degrees,
-} from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
 import fs from "fs";
 import path from "path";
@@ -27,70 +20,38 @@ export interface TicketData {
 
 // ─── Canvas ───────────────────────────────────────────────────────────────────
 
-const W = 420; // width  (points)
-const H = 680; // height (points)
-const PAD = 28; // horizontal padding
+const W = 420;
+const H = 720;
+const TICKET_X = 10;
+const TICKET_Y = 10;
+const TICKET_W = 400;
+const TICKET_H = 700;
+const PAD = 34;
 
-// ─── Themes ───────────────────────────────────────────────────────────────────
+// ─── Theme ────────────────────────────────────────────────────────────────────
 
-interface Theme {
-  // Backgrounds
-  pageBg: [number, number, number];
-  headerBg: [number, number, number];
-  sectionBg: [number, number, number];
-  qrBg: [number, number, number];
-  footerBg: [number, number, number];
-  // Text
-  accentColor: [number, number, number]; // gold / silver tone
-  headingColor: [number, number, number];
-  labelColor: [number, number, number];
-  valueColor: [number, number, number];
-  mutedColor: [number, number, number];
-  // Tier strip
-  stripBg: [number, number, number];
-  stripText: [number, number, number];
-  // Lines / borders
-  borderColor: [number, number, number];
-  dividerColor: [number, number, number];
-  // QR colors
-  qrDark: string;
-  qrLight: string;
-  // Labels
-  tierLabel: string;
-  // subLabel:    string;
-  accessLabel: string;
-}
+type Color = [number, number, number];
 
-const THEME: Theme = {
-  // Backgrounds - dark theme matching the provided image
-  pageBg: [0.05, 0.04, 0.03],
-  headerBg: [0.08, 0.06, 0.02],
-  sectionBg: [0.07, 0.055, 0.015],
-  qrBg: [0.065, 0.05, 0.01],
-  footerBg: [0.04, 0.03, 0.01],
-  // Text - gold accents
-  accentColor: [0.85, 0.7, 0.3],
-  headingColor: [0.98, 0.88, 0.5],
-  labelColor: [0.6, 0.48, 0.18],
-  valueColor: [0.95, 0.85, 0.45],
-  mutedColor: [0.5, 0.4, 0.15],
-  // Tier strip - gold
-  stripBg: [0.85, 0.7, 0.3],
-  stripText: [0.05, 0.04, 0.01],
-  // Lines / borders - gold
-  borderColor: [0.85, 0.7, 0.3],
-  dividerColor: [0.4, 0.3, 0.08],
-  // QR colors - gold on dark
-  qrDark: "#D4AF37",
-  qrLight: "#0D0A05",
-  // Labels
-  tierLabel: "VIP ACCESS",
-  accessLabel: "ALL AREAS",
+const COLORS = {
+  pageBg: [0.039, 0.039, 0.039] as Color,
+  ticketBg: [0.051, 0.051, 0.051] as Color,
+  headerBg: [0.051, 0.051, 0.051] as Color,
+  bodyBg: [0.067, 0.067, 0.067] as Color,
+  footerBg: [0.035, 0.035, 0.035] as Color,
+  fieldBg: [0.102, 0.102, 0.102] as Color,
+  border: [0.165, 0.165, 0.165] as Color,
+  borderSoft: [0.118, 0.118, 0.118] as Color,
+  gold: [0.788, 0.659, 0.298] as Color,
+  cream: [0.941, 0.91, 0.8] as Color,
+  text: [0.878, 0.835, 0.753] as Color,
+  muted: [0.18, 0.18, 0.18] as Color,
+  qrDark: "#1A1208",
+  qrLight: "#F0E8CC",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const c = (v: [number, number, number]) => rgb(v[0], v[1], v[2]);
+const c = (v: Color) => rgb(v[0], v[1], v[2]);
 
 function centered(
   text: string,
@@ -103,74 +64,104 @@ function centered(
   return x + (w - tw) / 2;
 }
 
-function drawHRule(
+function fitSize(text: string, size: number, font: PDFFont, maxWidth: number) {
+  let nextSize = size;
+  while (nextSize > 7 && font.widthOfTextAtSize(text, nextSize) > maxWidth) {
+    nextSize -= 0.5;
+  }
+  return nextSize;
+}
+
+function drawLabel(
   page: PDFPage,
+  text: string,
   x: number,
   y: number,
-  w: number,
-  color: [number, number, number],
-  opacity = 1,
-  thick = 0.6,
+  font: PDFFont,
+  size = 7.5,
+  opacity = 0.6,
 ) {
-  page.drawLine({
-    start: { x, y },
-    end: { x: x + w, y },
-    thickness: thick,
-    color: c(color),
+  page.drawText(text.toUpperCase(), {
+    x,
+    y,
+    size,
+    font,
+    color: c(COLORS.gold),
     opacity,
   });
 }
 
-function drawRoundRect(
+function drawFieldCard(
   page: PDFPage,
+  label: string,
+  value: string,
   x: number,
   y: number,
   w: number,
   h: number,
-  bg: [number, number, number],
-  border?: [number, number, number],
-  bw = 0.8,
+  fonts: { bold: PDFFont; reg: PDFFont },
 ) {
-  // pdf-lib doesn't support borderRadius natively; simulate with a plain rect
   page.drawRectangle({
     x,
     y,
     width: w,
     height: h,
-    color: c(bg),
-    borderColor: border ? c(border) : undefined,
-    borderWidth: border ? bw : undefined,
+    color: c(COLORS.fieldBg),
+  });
+  page.drawLine({
+    start: { x, y: y + 6 },
+    end: { x, y: y + h - 6 },
+    thickness: 1.4,
+    color: c(COLORS.gold),
+    opacity: 0.55,
+  });
+  drawLabel(page, label, x + 13, y + h - 18, fonts.bold, 6.7, 0.62);
+  const valueSize = fitSize(value, 12.5, fonts.bold, w - 26);
+  page.drawText(value, {
+    x: x + 13,
+    y: y + 14,
+    size: valueSize,
+    font: fonts.bold,
+    color: c(COLORS.cream),
+    maxWidth: w - 26,
   });
 }
 
-function drawDiamondOrnament(
-  page: PDFPage,
-  cx: number,
-  cy: number,
-  color: [number, number, number],
-) {
-  const s = 3;
-  page.drawRectangle({
-    x: cx - s,
-    y: cy - s,
-    width: s * 2,
-    height: s * 2,
-    color: c(color),
-    rotate: degrees(45),
-  });
+function splitTitle(text: string, font: PDFFont, size: number, maxWidth: number) {
+  const words = (text || "BePraize Sax Live").toUpperCase().split(/\s+/);
+  const lines: string[] = [];
+
+  for (const word of words) {
+    const last = lines[lines.length - 1];
+    const candidate = last ? `${last} ${word}` : word;
+    if (lines.length === 0) {
+      lines.push(word);
+    } else if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
+      lines[lines.length - 1] = candidate;
+    } else {
+      lines.push(word);
+    }
+  }
+
+  if (lines.length > 2) {
+    return [lines[0], lines.slice(1).join(" ")];
+  }
+
+  return lines;
 }
 
 // ─── Main generator ───────────────────────────────────────────────────────────
 
 export async function generateTicket(data: TicketData): Promise<Uint8Array> {
-  const t = THEME;
   const doc = await PDFDocument.create();
   const page = doc.addPage([W, H]);
 
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const reg = await doc.embedFont(StandardFonts.Helvetica);
+  const mono = await doc.embedFont(StandardFonts.Courier);
+  const monoBold = await doc.embedFont(StandardFonts.CourierBold);
+  const fonts = { bold, reg };
 
-  // ── QR code ──────────────────────────────────────────────────────────────
   const signature = signTicket({
     ticketId: data.ticketId,
     orderNumber: data.orderNumber,
@@ -178,286 +169,259 @@ export async function generateTicket(data: TicketData): Promise<Uint8Array> {
   });
   const qrPayload = `BPSAX|TKT:${data.ticketId}|ORD:${data.orderNumber}|TIER:${data.tier}|SIG:${signature}`;
   const qrBuf: Buffer = await QRCode.toBuffer(qrPayload, {
-    width: 220,
-    margin: 2,
-    color: { dark: t.qrDark, light: t.qrLight },
+    width: 260,
+    margin: 1,
+    color: { dark: COLORS.qrDark, light: COLORS.qrLight },
   });
   const qrImg = await doc.embedPng(qrBuf);
 
-  // ── Logo (optional) ───────────────────────────────────────────────────────
   let logoImg = null;
   try {
-    const buf = fs.readFileSync(path.join(process.cwd(), "public", "logo.png"));
-    logoImg = await doc.embedPng(buf);
+    const logoBuffer = fs.readFileSync(path.join(process.cwd(), "public", "logo.png"));
+    logoImg = await doc.embedPng(logoBuffer);
   } catch {
-    /* no logo = fine */
+    /* Use a small text fallback when the logo asset is unavailable. */
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LAYER 0: Page background
-  // ═══════════════════════════════════════════════════════════════════════════
-  page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: c(t.pageBg) });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SECTION HEIGHTS (from top, Y measured from bottom)
-  // ═══════════════════════════════════════════════════════════════════════════
-  const FOOTER_H = 42;
-  const STRIP_H = 52;
-  const QR_SECT_H = 190;
-  const INFO_H = 180;
-  const HEADER_H = H - FOOTER_H - STRIP_H - QR_SECT_H - INFO_H; // ~216
-
-  const yFooter = 0;
-  const yStrip = FOOTER_H;
-  const yQr = FOOTER_H + STRIP_H;
-  const yInfo = yQr + QR_SECT_H;
-  const yHeader = yInfo + INFO_H; // bottom of header band
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // FOOTER
-  // ═══════════════════════════════════════════════════════════════════════════
-  drawRoundRect(page, 0, yFooter, W, FOOTER_H, t.footerBg);
-  drawHRule(page, 0, FOOTER_H, W, t.borderColor, 0.35);
-
-  const website = "WWW.BEPRAIZESAX.CA";
-  page.drawText(website, {
-    x: centered(website, 8.5, bold, 0, W),
-    y: yFooter + 17,
-    size: 8.5,
-    font: bold,
-    color: c(t.accentColor),
-    opacity: 0.75,
-  });
-  // Decorative dashes
-  page.drawText("— — —", {
-    x: PAD - 4,
-    y: yFooter + 17,
-    size: 7,
-    font: reg,
-    color: c(t.mutedColor),
-    opacity: 0.5,
-  });
-  page.drawText("— — —", {
-    x: W - PAD - 28,
-    y: yFooter + 17,
-    size: 7,
-    font: reg,
-    color: c(t.mutedColor),
-    opacity: 0.5,
+  page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: c(COLORS.pageBg) });
+  page.drawRectangle({
+    x: TICKET_X,
+    y: TICKET_Y,
+    width: TICKET_W,
+    height: TICKET_H,
+    color: c(COLORS.ticketBg),
+    borderColor: c(COLORS.border),
+    borderWidth: 1,
   });
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // TIER STRIP
-  // ═══════════════════════════════════════════════════════════════════════════
-  drawRoundRect(page, 0, yStrip, W, STRIP_H, t.stripBg);
-  drawHRule(page, 0, yStrip + STRIP_H, W, t.borderColor, 0.55);
-  drawHRule(page, 0, yStrip, W, t.borderColor, 0.55);
+  const footerH = 45;
+  const headerH = 235;
+  const footerY = TICKET_Y;
+  const bodyY = footerY + footerH;
+  const bodyH = TICKET_H - footerH - headerH;
+  const headerY = bodyY + bodyH;
 
-  // Diamond ornaments
-  drawDiamondOrnament(page, PAD + 8, yStrip + STRIP_H / 2, t.stripText);
-  drawDiamondOrnament(page, W - PAD - 8, yStrip + STRIP_H / 2, t.stripText);
+  // Header
+  page.drawRectangle({
+    x: TICKET_X,
+    y: headerY,
+    width: TICKET_W,
+    height: headerH,
+    color: c(COLORS.headerBg),
+  });
+  page.drawCircle({
+    x: TICKET_X + TICKET_W - 72,
+    y: headerY + headerH - 78,
+    size: 96,
+    color: c(COLORS.gold),
+    opacity: 0.12,
+  });
+  for (let x = TICKET_X - 120; x < TICKET_X + TICKET_W + 80; x += 24) {
+    page.drawLine({
+      start: { x, y: headerY },
+      end: { x: x + headerH, y: headerY + headerH },
+      thickness: 0.35,
+      color: c(COLORS.gold),
+      opacity: 0.035,
+    });
+  }
 
-  // Always use the actual tier name passed from the DB.
-  // Fall back to the theme default only if no name was provided.
-  const tierLabel = (data.tierName || data.tier || t.tierLabel).toUpperCase();
-  page.drawText(tierLabel, {
-    x: centered(tierLabel, 24, bold, 0, W),
-    y: yStrip + 16,
+  drawLabel(page, "Live Concert", TICKET_X + PAD, headerY + headerH - 45, bold, 7.5, 0.58);
+
+  const logoCx = TICKET_X + TICKET_W - PAD - 17;
+  const logoCy = headerY + headerH - 53;
+  page.drawCircle({ x: logoCx, y: logoCy, size: 27, color: c(COLORS.pageBg) });
+  page.drawCircle({
+    x: logoCx,
+    y: logoCy,
     size: 24,
-    font: bold,
-    color: c(t.stripText),
+    color: c(COLORS.ticketBg),
+    borderColor: c(COLORS.gold),
+    borderWidth: 1,
+    opacity: 0.96,
   });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PERFORATION LINE (between footer/strip and QR section)
-  // ═══════════════════════════════════════════════════════════════════════════
-  const perfY = yQr;
-  const holeR = 5.5;
-  const holeCount = 11;
-  const holeSpacing = W / (holeCount + 1);
-  for (let i = 1; i <= holeCount; i++) {
-    page.drawCircle({
-      x: i * holeSpacing,
-      y: perfY,
-      size: holeR,
-      color: c(t.pageBg),
-    });
-  }
-  page.drawCircle({ x: 0, y: perfY, size: holeR + 1, color: c(t.pageBg) });
-  page.drawCircle({ x: W, y: perfY, size: holeR + 1, color: c(t.pageBg) });
-  drawHRule(page, 0, perfY, W, t.dividerColor, 0.3, 0.4);
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // QR CODE SECTION
-  // ═══════════════════════════════════════════════════════════════════════════
-  drawRoundRect(page, 0, yQr, W, QR_SECT_H, t.qrBg);
-  drawHRule(page, 0, yQr + QR_SECT_H, W, t.dividerColor, 0.5);
-
-  const qrSize = 130;
-  const qrX = (W - qrSize) / 2;
-  const qrY = yQr + (QR_SECT_H - qrSize - 28) / 2 + 14;
-
-  // QR frame
-  const framePad = 8;
-  drawRoundRect(
-    page,
-    qrX - framePad,
-    qrY - framePad,
-    qrSize + framePad * 2,
-    qrSize + framePad * 2,
-    t.sectionBg,
-    t.borderColor,
-    1,
-  );
-
-  // QR image
-  page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
-
-  // "SCAN FOR ENTRY" label below QR
-  const scanLabel = "SCAN FOR ENTRY";
-  const scanY = yQr + 10;
-  drawRoundRect(
-    page,
-    centered(scanLabel, 9, bold, 0, W) - 12,
-    scanY - 2,
-    bold.widthOfTextAtSize(scanLabel, 9) + 24,
-    18,
-    t.stripBg,
-  );
-  page.drawText(scanLabel, {
-    x: centered(scanLabel, 9, bold, 0, W),
-    y: scanY + 2,
-    size: 9,
-    font: bold,
-    color: c(t.stripText),
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // INFO SECTION
-  // ═══════════════════════════════════════════════════════════════════════════
-  drawRoundRect(page, 0, yInfo, W, INFO_H, t.sectionBg);
-  drawHRule(page, 0, yInfo + INFO_H, W, t.dividerColor, 0.5);
-
-  const infoFields: { label: string; value: string }[] = [
-    { label: "ATTENDEE", value: data.attendeeName.toUpperCase() },
-    { label: "TICKET ID", value: `#${data.ticketId}` },
-    { label: "ORDER #", value: data.orderNumber },
-    ...(data.eventDate ? [{ label: "DATE", value: data.eventDate }] : []),
-    ...(data.eventTime ? [{ label: "TIME", value: data.eventTime }] : []),
-    ...(data.venue ? [{ label: "VENUE", value: data.venue }] : []),
-  ];
-
-  // Two-column layout for info fields
-  const colW = (W - PAD * 2 - 20) / 2;
-  const rowH = 38;
-  const infoTop = yInfo + INFO_H - 18;
-
-  infoFields.forEach((f, i) => {
-    const col = i % 2;
-    const row = Math.floor(i / 2);
-    const fx = PAD + col * (colW + 20);
-    const fy = infoTop - row * rowH;
-
-    page.drawText(f.label, {
-      x: fx,
-      y: fy,
-      size: 8,
-      font: bold,
-      color: c(t.labelColor),
-    });
-    page.drawText(f.value, {
-      x: fx,
-      y: fy - 14,
-      size: 12.5,
-      font: bold,
-      color: c(t.valueColor),
-      maxWidth: colW,
-    });
-  });
-
-  // Vertical divider between columns
-  drawHRule(page, W / 2 + 2, yInfo + 10, 0, t.dividerColor, 0); // placeholder
-  page.drawLine({
-    start: { x: W / 2, y: yInfo + 10 },
-    end: { x: W / 2, y: yInfo + INFO_H - 10 },
-    thickness: 0.5,
-    color: c(t.dividerColor),
-    opacity: 0.45,
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // HEADER SECTION (top of ticket)
-  // ═══════════════════════════════════════════════════════════════════════════
-  drawRoundRect(page, 0, yHeader, W, HEADER_H, t.headerBg);
-  drawHRule(page, 0, yHeader, W, t.dividerColor, 0.5);
-
-  // ── Logo ─────────────────────────────────────────────────────────────────
-  let logoH = 0;
   if (logoImg) {
-    const ld = logoImg.scaleToFit(60, 60);
-    const lx = (W - ld.width) / 2;
-    const ly = yHeader + HEADER_H - ld.height - 16;
+    const logo = logoImg.scaleToFit(38, 38);
     page.drawImage(logoImg, {
-      x: lx,
-      y: ly,
-      width: ld.width,
-      height: ld.height,
-      opacity: 0.95,
+      x: logoCx - logo.width / 2,
+      y: logoCy - logo.height / 2,
+      width: logo.width,
+      height: logo.height,
     });
-    logoH = ld.height + 8;
+  } else {
+    page.drawText("BP", {
+      x: centered("BP", 13, bold, logoCx - 13, 26),
+      y: logoCy - 5,
+      size: 13,
+      font: bold,
+      color: c(COLORS.cream),
+    });
   }
 
-  // ── Divider line between logo and event name ───────────────────────────────
-  const lineW = 80;
-  const dividerY = yHeader + HEADER_H - logoH - 20;
-  drawHRule(page, (W - lineW) / 2, dividerY, lineW, t.accentColor, 0.4);
+  const titleLines = splitTitle(data.eventName, bold, 42, 285);
+  titleLines.forEach((line, i) => {
+    const size = fitSize(line, 42, bold, 300);
+    page.drawText(line, {
+      x: TICKET_X + PAD,
+      y: headerY + 105 - i * 44,
+      size,
+      font: bold,
+      color: c(COLORS.cream),
+    });
+  });
 
-  // ── Event name (centered vertically in header, nudged down) ──────────────────
-  const eventName = (data.eventName || "EVENT").toUpperCase();
-  const headerCenterY = yHeader + HEADER_H / 2;
-  const eventNameY = headerCenterY - 10; // Nudge down from center
-  page.drawText(eventName, {
-    x: centered(eventName, 28, bold, 0, W),
-    y: eventNameY,
-    size: 28,
+  // Perforation
+  const perfY = headerY;
+  for (let x = TICKET_X + 16; x < TICKET_X + TICKET_W - 16; x += 10) {
+    page.drawLine({
+      start: { x, y: perfY },
+      end: { x: x + 4, y: perfY },
+      thickness: 0.45,
+      color: c(COLORS.border),
+      opacity: 0.9,
+    });
+  }
+  page.drawCircle({ x: TICKET_X, y: perfY, size: 10, color: c(COLORS.pageBg) });
+  page.drawCircle({ x: TICKET_X + TICKET_W, y: perfY, size: 10, color: c(COLORS.pageBg) });
+
+  // Body
+  page.drawRectangle({
+    x: TICKET_X,
+    y: bodyY,
+    width: TICKET_W,
+    height: bodyH,
+    color: c(COLORS.bodyBg),
+  });
+
+  const contentX = TICKET_X + PAD;
+  const contentW = TICKET_W - PAD * 2;
+  const attendeeY = bodyY + bodyH - 65;
+  drawLabel(page, "Attendee", contentX, attendeeY + 29, bold, 7, 0.62);
+  const attendeeSize = fitSize(data.attendeeName || "Guest", 22, bold, contentW);
+  page.drawText(data.attendeeName || "Guest", {
+    x: contentX,
+    y: attendeeY + 2,
+    size: attendeeSize,
     font: bold,
-    color: c(t.headingColor),
+    color: c(COLORS.cream),
+  });
+  page.drawLine({
+    start: { x: contentX, y: attendeeY - 20 },
+    end: { x: contentX + contentW, y: attendeeY - 20 },
+    thickness: 0.6,
+    color: c(COLORS.borderSoft),
   });
 
-  // Decorative corner ornaments in header
-  const cornOff = 12;
-  [
-    [PAD - 6, yHeader + HEADER_H - cornOff],
-    [W - PAD - 6, yHeader + HEADER_H - cornOff],
-    [PAD - 6, yHeader + cornOff / 2],
-    [W - PAD - 6, yHeader + cornOff / 2],
-  ].forEach(([cx, cy]) =>
-    drawDiamondOrnament(page, cx as number, cy as number, t.accentColor),
-  );
+  const cardGap = 11;
+  const halfW = (contentW - cardGap) / 2;
+  const dateY = attendeeY - 90;
+  drawFieldCard(page, "Date", data.eventDate || "TBD", contentX, dateY, halfW, 51, fonts);
+  drawFieldCard(page, "Time", data.eventTime || "TBD", contentX + halfW + cardGap, dateY, halfW, 51, fonts);
+  drawFieldCard(page, "Venue", data.venue || "Venue TBA", contentX, dateY - 64, contentW, 51, fonts);
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // OUTER BORDER (entire ticket)
-  // ═══════════════════════════════════════════════════════════════════════════
+  // QR + tier row
+  const qrSize = 158;
+  const qrX = contentX;
+  const qrY = bodyY + 28;
   page.drawRectangle({
-    x: 1.5,
-    y: 1.5,
-    width: W - 3,
-    height: H - 3,
-    color: undefined,
-    borderColor: c(t.borderColor),
-    borderWidth: 1.5,
-    opacity: 1,
+    x: qrX,
+    y: qrY,
+    width: qrSize,
+    height: qrSize,
+    color: c(COLORS.cream),
+    borderColor: c(COLORS.gold),
+    borderWidth: 0.6,
   });
-  // Inner border inset
+  page.drawImage(qrImg, {
+    x: qrX + 7,
+    y: qrY + 7,
+    width: qrSize - 14,
+    height: qrSize - 14,
+  });
+
+  const rightX = qrX + qrSize + 18;
+  const tierName = (data.tierName || data.tier || "VIP Access").toUpperCase();
+  const pillText = tierName;
+  const pillTextSize = fitSize(pillText, 10.5, bold, contentX + contentW - rightX - 34);
+  const pillW = Math.min(contentX + contentW - rightX, bold.widthOfTextAtSize(pillText, pillTextSize) + 43);
+  const pillY = qrY + qrSize - 33;
   page.drawRectangle({
-    x: 5,
-    y: 5,
-    width: W - 10,
-    height: H - 10,
-    color: undefined,
-    borderColor: c(t.borderColor),
-    borderWidth: 0.4,
-    opacity: 0.3,
+    x: rightX,
+    y: pillY,
+    width: pillW,
+    height: 27,
+    color: c(COLORS.bodyBg),
+    borderColor: c(COLORS.gold),
+    borderWidth: 0.7,
+    opacity: 0.95,
+  });
+  page.drawCircle({ x: rightX + 18, y: pillY + 13.5, size: 3.3, color: c(COLORS.gold), opacity: 0.9 });
+  page.drawText(pillText, {
+    x: rightX + 30,
+    y: pillY + 9,
+    size: pillTextSize,
+    font: bold,
+    color: c(COLORS.gold),
+  });
+
+  page.drawText(`#${data.ticketId}`, {
+    x: rightX,
+    y: pillY - 28,
+    size: 8.5,
+    font: mono,
+    color: c(COLORS.muted),
+    maxWidth: contentX + contentW - rightX,
+  });
+  page.drawText(`ORDER: ${data.orderNumber}`, {
+    x: rightX,
+    y: pillY - 43,
+    size: 8.5,
+    font: mono,
+    color: c(COLORS.muted),
+    maxWidth: contentX + contentW - rightX,
+  });
+  page.drawText("SCAN AT ENTRANCE", {
+    x: rightX,
+    y: pillY - 72,
+    size: 7.4,
+    font: bold,
+    color: c(COLORS.muted),
+  });
+
+  // Footer
+  page.drawRectangle({
+    x: TICKET_X,
+    y: footerY,
+    width: TICKET_W,
+    height: footerH,
+    color: c(COLORS.footerBg),
+  });
+  page.drawLine({
+    start: { x: TICKET_X, y: footerY + footerH },
+    end: { x: TICKET_X + TICKET_W, y: footerY + footerH },
+    thickness: 0.6,
+    color: c(COLORS.borderSoft),
+  });
+  page.drawText("WWW.BEPRAIZESAX.CA", {
+    x: contentX,
+    y: footerY + 17,
+    size: 7.3,
+    font: monoBold,
+    color: c(COLORS.muted),
+  });
+  page.drawLine({
+    start: { x: TICKET_X + TICKET_W / 2, y: footerY + 15 },
+    end: { x: TICKET_X + TICKET_W / 2, y: footerY + 26 },
+    thickness: 0.6,
+    color: c(COLORS.borderSoft),
+  });
+  page.drawCircle({ x: TICKET_X + TICKET_W - 142, y: footerY + 20, size: 2.4, color: c(COLORS.gold), opacity: 0.35 });
+  page.drawText("PRESENT QR AT DOOR", {
+    x: TICKET_X + TICKET_W - 132,
+    y: footerY + 17,
+    size: 7.3,
+    font: monoBold,
+    color: c(COLORS.muted),
   });
 
   return doc.save();
