@@ -109,6 +109,45 @@ export async function POST(request: NextRequest) {
     // If no amount, treat as order creation/update
     await connectDB();
 
+    if (body.paymentMethod && body.paymentMethod !== "card") {
+      return NextResponse.json(
+        { error: "Unsupported payment method" },
+        { status: 400 },
+      );
+    }
+
+    if (body.paymentMethod === "card") {
+      if (!body.paymentIntentId) {
+        return NextResponse.json(
+          { error: "Missing payment confirmation" },
+          { status: 400 },
+        );
+      }
+
+      const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeSecretKey) {
+        return NextResponse.json(
+          { error: "Stripe configuration error" },
+          { status: 500 },
+        );
+      }
+
+      const stripe = new Stripe(stripeSecretKey);
+      const paymentIntent = await stripe.paymentIntents.retrieve(
+        body.paymentIntentId,
+      );
+
+      if (
+        paymentIntent.status !== "succeeded" ||
+        paymentIntent.metadata?.orderId !== body.orderId
+      ) {
+        return NextResponse.json(
+          { error: "Payment has not been confirmed" },
+          { status: 402 },
+        );
+      }
+    }
+
     const existingOrder = body.orderId
       ? await OrderModel.exists({ orderId: body.orderId })
       : null;
@@ -161,10 +200,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const deliveryOrderIds = new Set<string>([body.orderId]);
+    if (Array.isArray(body.attendees)) {
+      body.attendees.forEach((attendee: { ticketId?: string }) => {
+        const orderPrefix = attendee.ticketId?.split("-").slice(0, -1).join("-");
+        if (orderPrefix) deliveryOrderIds.add(orderPrefix);
+      });
+    }
+
+    const ticketDeliveryTokens = Object.fromEntries(
+      Array.from(deliveryOrderIds).map((deliveryOrderId) => [
+        deliveryOrderId,
+        createTicketDeliveryToken(deliveryOrderId),
+      ]),
+    );
+
     return NextResponse.json(
       {
         ...order,
-        ticketDeliveryToken: createTicketDeliveryToken(body.orderId),
+        ticketDeliveryToken: ticketDeliveryTokens[body.orderId],
+        ticketDeliveryTokens,
       },
       { status: 201 },
     );

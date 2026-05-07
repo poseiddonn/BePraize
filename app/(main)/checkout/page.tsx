@@ -937,11 +937,6 @@ export default function CheckoutPage() {
 
   const elements = useElements();
 
-  const [isApple] = useState(
-    () =>
-      typeof navigator !== "undefined" &&
-      /iPhone|iPad|Mac/.test(navigator.userAgent),
-  );
 
   const [buyer, setBuyer] = useState<BuyerInfo>({
     name: "",
@@ -1248,6 +1243,8 @@ export default function CheckoutPage() {
     };
 
     try {
+      let paymentIntentId: string | undefined;
+
       if (paymentMethod === "card") {
         // Create payment intent
 
@@ -1308,10 +1305,12 @@ export default function CheckoutPage() {
 
           return;
         }
+
+        paymentIntentId = paymentResult.paymentIntent.id;
       }
 
       // Save order to MongoDB
-      await fetch("/api/orders", {
+      const saveOrderRes = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1323,9 +1322,19 @@ export default function CheckoutPage() {
           mailOption: order.mailOption,
           appliedCoupon: order.appliedCoupon,
           paymentMethod: order.paymentMethod,
+          paymentIntentId,
           createdAt: new Date().toISOString(),
         }),
       });
+
+      if (!saveOrderRes.ok) {
+        const errorData = await saveOrderRes.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to save order");
+      }
+
+      const savedOrder: {
+        ticketDeliveryTokens?: Record<string, string>;
+      } = await saveOrderRes.json();
 
       // Send tickets after order confirmation - group by event
       const eventsMap = new Map<string, (typeof cart)[0]>();
@@ -1441,30 +1450,6 @@ export default function CheckoutPage() {
       name: "Credit / Debit Card",
 
       sub: "Visa, Mastercard, Amex",
-    },
-
-    ...(isApple
-      ? [
-          {
-            id: "apple" as const,
-
-            icon: "🍎",
-
-            name: "Apple Pay",
-
-            sub: "Pay with Touch ID or Face ID",
-          },
-        ]
-      : []),
-
-    {
-      id: "google" as const,
-
-      icon: "G",
-
-      name: "Google Pay",
-
-      sub: "Fast checkout with Google",
     },
   ];
 
