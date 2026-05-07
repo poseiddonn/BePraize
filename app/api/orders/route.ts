@@ -175,6 +175,8 @@ export async function POST(request: NextRequest) {
       ...body,
       buyerName: body.buyer?.name || body.buyerName || "",
       buyerEmail: body.buyer?.email || body.buyerEmail || "",
+      status:
+        body.paymentMethod === "card" ? "success" : body.status || "pending",
     };
 
     // Remove the nested buyer object since we've flattened it
@@ -191,11 +193,14 @@ export async function POST(request: NextRequest) {
     if (shouldAdjustStock && body.cart && Array.isArray(body.cart)) {
       for (const item of body.cart) {
         if (item.tierId && item.quantity) {
-          await TicketTierModel.findByIdAndUpdate(
-            item.tierId,
-            { $inc: { stock: -item.quantity } },
-            { new: true },
-          );
+          const tier = await TicketTierModel.findById(item.tierId);
+          if (tier && tier.stock !== null) {
+            await TicketTierModel.findByIdAndUpdate(
+              item.tierId,
+              { $inc: { stock: -item.quantity } },
+              { new: true },
+            );
+          }
         }
       }
     }
@@ -203,7 +208,10 @@ export async function POST(request: NextRequest) {
     const deliveryOrderIds = new Set<string>([body.orderId]);
     if (Array.isArray(body.attendees)) {
       body.attendees.forEach((attendee: { ticketId?: string }) => {
-        const orderPrefix = attendee.ticketId?.split("-").slice(0, -1).join("-");
+        const orderPrefix = attendee.ticketId
+          ?.split("-")
+          .slice(0, -1)
+          .join("-");
         if (orderPrefix) deliveryOrderIds.add(orderPrefix);
       });
     }
