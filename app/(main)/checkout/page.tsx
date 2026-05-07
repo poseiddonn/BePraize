@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -17,9 +17,18 @@ import {
   Users,
 } from "lucide-react";
 
-import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import {
+  CardElement,
+  PaymentRequestButtonElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 
-import { StripeCardElementChangeEvent } from "@stripe/stripe-js";
+import type {
+  PaymentRequest,
+  PaymentRequestPaymentMethodEvent,
+  StripeCardElementChangeEvent,
+} from "@stripe/stripe-js";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -222,8 +231,6 @@ const CSS = `
 
   .co-page *, .co-page *::before, .co-page *::after { box-sizing: border-box; }
 
-
-
   .co-page {
 
     min-height: 100vh;
@@ -235,8 +242,6 @@ const CSS = `
     font-family: 'DM Sans', sans-serif;
 
   }
-
-
 
   /* Top bar */
 
@@ -270,8 +275,6 @@ const CSS = `
 
   }
 
-
-
   /* Layout */
 
   .co-layout {
@@ -300,15 +303,11 @@ const CSS = `
 
   }
 
-
-
   /* Left column */
 
   .co-left { padding-right: 40px; }
 
   @media (max-width: 900px) { .co-left { padding-right: 0; } }
-
-
 
   .co-section {
 
@@ -328,15 +327,11 @@ const CSS = `
 
   .section-sub { font-size: 13px; color: #555; margin-bottom: 20px; }
 
-
-
   /* Form grid */
 
   .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
   @media (max-width: 600px) { .form-grid-2 { grid-template-columns: 1fr; } }
-
-
 
   .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 
@@ -384,8 +379,6 @@ const CSS = `
     color: #666; cursor: not-allowed;
   }
 
-
-
   /* Input with icon */
 
   .input-wrap { position: relative; }
@@ -399,8 +392,6 @@ const CSS = `
   }
 
   .input-wrap .form-input { padding-left: 38px; }
-
-
 
   /* Attendee blocks */
 
@@ -440,8 +431,6 @@ const CSS = `
 
   .attendee-body { padding: 18px; border-top: 1px solid #2a2a2a; }
 
-
-
   /* Mail options */
 
   .mail-options { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -470,11 +459,12 @@ const CSS = `
 
   .mail-option.selected .mail-option-label { color: #e53e3e; }
 
-
-
   /* Payment methods */
 
   .payment-options { display: flex; flex-direction: column; gap: 10px; }
+  .wallet-checkout { margin-bottom: 14px; }
+  .wallet-divider { display: flex; align-items: center; gap: 10px; margin: 14px 0; color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; }
+  .wallet-divider::before, .wallet-divider::after { content: ""; flex: 1; height: 1px; background: #222; }
 
   .payment-option {
 
@@ -530,21 +520,15 @@ const CSS = `
 
   }
 
-
-
   /* Card fields */
 
   .card-fields { margin-top: 16px; padding: 18px; background: #111; border-radius: 10px; border: 1px solid #222; }
 
   .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-
-
   /* Divider */
 
   .co-divider { height: 1px; background: #1e1e1e; margin: 28px 0; }
-
-
 
   /* Right: summary sticky */
 
@@ -620,8 +604,6 @@ const CSS = `
 
   .order-note { font-size: 12px; color: #444; text-align: center; margin-top: 10px; line-height: 1.5; }
 
-
-
   /* Coupon in summary */
 
   .co-coupon-row { display: flex; gap: 8px; margin-bottom: 18px; }
@@ -663,8 +645,6 @@ const CSS = `
   .coupon-invalid { color: #e53e3e; }
 
   .coupon-clear { background: none; border: none; cursor: pointer; color: #555; padding: 0; }
-
-
 
   @media (max-width: 640px) {
 
@@ -933,10 +913,12 @@ export default function CheckoutPage() {
 
   const [buyerPhoneError, setBuyerPhoneError] = useState("");
 
+  const [walletPaymentRequest, setWalletPaymentRequest] =
+    useState<PaymentRequest | null>(null);
+
   const stripe = useStripe();
 
   const elements = useElements();
-
 
   const [buyer, setBuyer] = useState<BuyerInfo>({
     name: "",
@@ -1110,7 +1092,10 @@ export default function CheckoutPage() {
 
   const total = taxable + tax;
 
-  const handlePlaceOrder = async () => {
+  const handlePlaceOrder = async (
+    walletPaymentMethodId?: string,
+    walletEvent?: PaymentRequestPaymentMethodEvent,
+  ) => {
     if (!stripe || !elements) {
       alert("Payment system not loaded. Please refresh the page.");
 
@@ -1242,10 +1227,68 @@ export default function CheckoutPage() {
       createdAt: new Date().toISOString(),
     };
 
+    let walletCompleted = false;
+
     try {
       let paymentIntentId: string | undefined;
 
-      if (paymentMethod === "card") {
+      if (walletPaymentMethodId) {
+        const response = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: total,
+            currency: "cad",
+            orderId: masterOrderId,
+            customer_email: buyer.email,
+            metadata: {
+              orderId: masterOrderId,
+              eventNames: cart.map((c) => c.eventName).join(", "),
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to create payment intent");
+        }
+
+        const { clientSecret } = await response.json();
+        const paymentResult = await stripe.confirmCardPayment(
+          clientSecret,
+          { payment_method: walletPaymentMethodId },
+          { handleActions: false },
+        );
+
+        if (paymentResult.error) {
+          walletEvent?.complete("fail");
+          walletCompleted = true;
+          alert(`Payment failed: ${paymentResult.error.message}`);
+          setPlacing(false);
+          return;
+        }
+
+        walletEvent?.complete("success");
+        walletCompleted = true;
+
+        let confirmedPaymentIntent = paymentResult.paymentIntent;
+        if (confirmedPaymentIntent?.status === "requires_action") {
+          const actionResult = await stripe.confirmCardPayment(clientSecret);
+          if (actionResult.error) {
+            alert(`Payment failed: ${actionResult.error.message}`);
+            setPlacing(false);
+            return;
+          }
+          confirmedPaymentIntent = actionResult.paymentIntent;
+        }
+
+        if (confirmedPaymentIntent?.status !== "succeeded") {
+          alert("Payment processing failed. Please try again.");
+          setPlacing(false);
+          return;
+        }
+
+        paymentIntentId = confirmedPaymentIntent.id;
+      } else if (paymentMethod === "card") {
         // Create payment intent
 
         const response = await fetch("/api/orders", {
@@ -1420,6 +1463,9 @@ export default function CheckoutPage() {
 
       router.push("/receipt");
     } catch (error) {
+      if (walletEvent && !walletCompleted) {
+        walletEvent.complete("fail");
+      }
       const errorMessage =
         error instanceof Error ? error.message : "An error occurred";
 
@@ -1441,6 +1487,72 @@ export default function CheckoutPage() {
       buyer.country as keyof typeof POSTAL_CODE_PATTERNS
     ].test(buyer.postalCode);
 
+  const handlePlaceOrderRef = useRef(handlePlaceOrder);
+
+  useEffect(() => {
+    handlePlaceOrderRef.current = handlePlaceOrder;
+  });
+
+  useEffect(() => {
+    if (!stripe || !isValid || cart.length === 0 || total <= 0) {
+      return;
+    }
+
+    const paymentRequest = stripe.paymentRequest({
+      country: "CA",
+      currency: "cad",
+      total: {
+        label: "BePraize Sax tickets",
+        amount: Math.round(total * 100),
+      },
+      displayItems: [
+        {
+          label: "Subtotal",
+          amount: Math.round(taxable * 100),
+        },
+        ...(discount > 0
+          ? [
+              {
+                label: "Discount",
+                amount: -Math.round(discount * 100),
+              },
+            ]
+          : []),
+        {
+          label: "HST",
+          amount: Math.round(tax * 100),
+        },
+      ],
+      requestPayerName: true,
+      requestPayerEmail: true,
+    });
+
+    let active = true;
+
+    paymentRequest
+      .canMakePayment()
+      .then((result) => {
+        if (!active) return;
+
+        setWalletPaymentRequest(
+          result?.applePay || result?.googlePay ? paymentRequest : null,
+        );
+      })
+      .catch(() => {
+        if (active) setWalletPaymentRequest(null);
+      });
+
+    const handleWalletPayment = (event: PaymentRequestPaymentMethodEvent) => {
+      void handlePlaceOrderRef.current(event.paymentMethod.id, event);
+    };
+
+    paymentRequest.on("paymentmethod", handleWalletPayment);
+
+    return () => {
+      active = false;
+      paymentRequest.off("paymentmethod", handleWalletPayment);
+    };
+  }, [stripe, isValid, cart.length, total, taxable, discount, tax]);
   const paymentOptions = [
     {
       id: "card" as const,
@@ -1807,6 +1919,24 @@ export default function CheckoutPage() {
 
             <p className="section-sub">Choose how you&#39;d like to pay</p>
 
+            {walletPaymentRequest && isValid && cart.length > 0 && total > 0 && (
+              <div className="wallet-checkout">
+                <PaymentRequestButtonElement
+                  options={{
+                    paymentRequest: walletPaymentRequest,
+                    style: {
+                      paymentRequestButton: {
+                        type: "buy",
+                        theme: "dark",
+                        height: "48px",
+                      },
+                    },
+                  }}
+                />
+                <div className="wallet-divider">or pay by card</div>
+              </div>
+            )}
+
             <div className="payment-options">
               {paymentOptions.map((opt) => (
                 <div
@@ -1826,7 +1956,6 @@ export default function CheckoutPage() {
                 </div>
               ))}
             </div>
-
             {paymentMethod === "card" && (
               <StripeCardFieldsComponent setCardComplete={setCardComplete} />
             )}
@@ -1944,7 +2073,7 @@ export default function CheckoutPage() {
 
           <button
             className="place-order-btn"
-            onClick={handlePlaceOrder}
+            onClick={() => handlePlaceOrder()}
             disabled={
               !isValid ||
               placing ||
@@ -1967,3 +2096,4 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
