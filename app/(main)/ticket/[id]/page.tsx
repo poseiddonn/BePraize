@@ -471,12 +471,12 @@ export default function TicketPage() {
           allCoupons.filter((c) => c.active && ev.coupons.includes(c.name)),
         );
 
-        // Load stored coupon from localStorage
-        const storedCoupon = localStorage.getItem("sax-applied-coupon");
-        if (storedCoupon) {
-          const coupon = JSON.parse(storedCoupon);
-          // Only apply if it's valid for this event
-          if (ev.coupons.includes(coupon.name)) {
+        // Load stored coupon from per-event localStorage map
+        const storedCoupons = localStorage.getItem("sax-applied-coupons");
+        if (storedCoupons) {
+          const couponMap: Record<string, Coupon> = JSON.parse(storedCoupons);
+          const coupon = couponMap[ev._id];
+          if (coupon && ev.coupons.includes(coupon.name)) {
             setAppliedCoupon(coupon);
           }
         }
@@ -490,24 +490,41 @@ export default function TicketPage() {
   }, []);
 
   const applyCoupon = () => {
+    if (!event) return;
     const code = couponInput.trim().toUpperCase();
     const found = availableCoupons.find((c) => c.name === code);
     if (found) {
       setAppliedCoupon(found);
-      localStorage.setItem("sax-applied-coupon", JSON.stringify(found));
+      localStorage.setItem(
+        "sax-applied-coupons",
+        JSON.stringify({
+          ...JSON.parse(localStorage.getItem("sax-applied-coupons") ?? "{}"),
+          [event._id]: found,
+        }),
+      );
       setCouponError(false);
     } else {
       setAppliedCoupon(null);
-      localStorage.removeItem("sax-applied-coupon");
       setCouponError(true);
+      // Remove only this event's coupon from the map
+      const couponMap = JSON.parse(
+        localStorage.getItem("sax-applied-coupons") ?? "{}",
+      );
+      delete couponMap[event._id];
+      localStorage.setItem("sax-applied-coupons", JSON.stringify(couponMap));
     }
   };
 
   const clearCoupon = () => {
+    if (!event) return;
     setAppliedCoupon(null);
-    localStorage.removeItem("sax-applied-coupon");
     setCouponInput("");
     setCouponError(false);
+    const couponMap = JSON.parse(
+      localStorage.getItem("sax-applied-coupons") ?? "{}",
+    );
+    delete couponMap[event._id];
+    localStorage.setItem("sax-applied-coupons", JSON.stringify(couponMap));
   };
 
   // Totals

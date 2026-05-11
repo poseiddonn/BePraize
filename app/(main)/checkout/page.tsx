@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation";
 
 import {
   CheckCircle,
-  Tag,
-  X,
   ChevronDown,
   ChevronUp,
   User,
@@ -220,8 +218,7 @@ const POSTAL_CODE_PATTERNS = {
 };
 
 // Phone validation pattern (North American format: at least 10 digits)
-const PHONE_PATTERN =
-  /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4}$/;
+const PHONE_PATTERN = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4}$/;
 
 const TAX_RATE = 0.13;
 
@@ -891,13 +888,10 @@ export default function CheckoutPage() {
 
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-
-  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
-
-  const [couponInput, setCouponInput] = useState("");
-
-  const [couponError, setCouponError] = useState(false);
+  // Per-event coupon map: { [eventId]: Coupon }
+  const [appliedCouponsMap, setAppliedCouponsMap] = useState<
+    Record<string, Coupon>
+  >({});
 
   const [paymentMethod, setPaymentMethod] = useState<
     "card" | "apple" | "google"
@@ -1017,74 +1011,39 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const initializeCheckout = async () => {
+      // Try sessionStorage first (set by cart handleCheckout)
       const stored = sessionStorage.getItem("sax-checkout");
-
       if (stored) {
         const data = JSON.parse(stored);
-
         setCart(data.cart || []);
-
-        if (data.appliedCoupon) setAppliedCoupon(data.appliedCoupon);
-      } else {
-        const cartStored = JSON.parse(localStorage.getItem("sax-cart") || "[]");
-
-        setCart(cartStored);
-
-        const storedCoupon = localStorage.getItem("sax-applied-coupon");
-        if (storedCoupon) {
-          setAppliedCoupon(JSON.parse(storedCoupon));
+        if (data.appliedCouponsMap) {
+          setAppliedCouponsMap(data.appliedCouponsMap);
         }
-      }
-
-      try {
-        const response = await fetch("/api/coupons");
-
-        const data: Coupon[] = await response.json();
-
-        setCoupons(data.filter((c) => c.active));
-      } catch {
-        // Silently handle error
+      } else {
+        // Fallback: read cart + per-event coupons from localStorage
+        const cartStored = JSON.parse(localStorage.getItem("sax-cart") || "[]");
+        setCart(cartStored);
+        const storedCoupons = localStorage.getItem("sax-applied-coupons");
+        if (storedCoupons) {
+          setAppliedCouponsMap(JSON.parse(storedCoupons));
+        }
       }
     };
 
     initializeCheckout();
   }, []);
 
-  const applyCoupon = () => {
-    const code = couponInput.trim().toUpperCase();
-
-    const found = coupons.find((c) => c.name === code);
-
-    if (found) {
-      setAppliedCoupon(found);
-      localStorage.setItem("sax-applied-coupon", JSON.stringify(found));
-      setCouponError(false);
-    } else {
-      setAppliedCoupon(null);
-      localStorage.removeItem("sax-applied-coupon");
-      setCouponError(true);
-    }
-  };
-
   const subtotal = cart.reduce(
     (acc, item) => acc + item.price * item.quantity,
-
     0,
   );
 
-  const discount = appliedCoupon
-    ? cart.reduce((acc, item) => {
-        // Only apply discount to items whose event has this coupon in its coupons array
-        const isEligible =
-          item.coupons && item.coupons.includes(appliedCoupon.name);
-        if (isEligible) {
-          return (
-            acc + item.price * item.quantity * (appliedCoupon.percentage / 100)
-          );
-        }
-        return acc;
-      }, 0)
-    : 0;
+  // Per-event discount — each coupon only applies to its own event's items
+  const discount = cart.reduce((acc, item) => {
+    const coupon = appliedCouponsMap[item.eventId];
+    if (!coupon) return acc;
+    return acc + item.price * item.quantity * (coupon.percentage / 100);
+  }, 0);
 
   const taxable = subtotal - discount;
 
@@ -1208,7 +1167,8 @@ export default function CheckoutPage() {
 
       attendees: attendeesWithTicketIds,
 
-      appliedCoupon,
+      appliedCoupon: Object.values(appliedCouponsMap)[0] ?? null, // legacy compat
+      appliedCouponsMap,
 
       mailOption,
 
@@ -1422,7 +1382,8 @@ export default function CheckoutPage() {
               venue: eventDetails.venue,
             },
 
-            ticketDeliveryToken: savedOrder.ticketDeliveryTokens?.[eventOrderId],
+            ticketDeliveryToken:
+              savedOrder.ticketDeliveryTokens?.[eventOrderId],
 
             attendees: eventAttendees.map((a) => ({
               name: a.name,
@@ -1449,11 +1410,9 @@ export default function CheckoutPage() {
       // Clear cart
 
       localStorage.removeItem("sax-cart");
-      localStorage.removeItem("sax-applied-coupon");
+      localStorage.removeItem("sax-applied-coupons");
       sessionStorage.removeItem("sax-checkout");
-      setAppliedCoupon(null);
-      setCouponInput("");
-      setCouponError(false);
+      setAppliedCouponsMap({});
 
       window.dispatchEvent(new Event("cartUpdated"));
 
@@ -1919,23 +1878,26 @@ export default function CheckoutPage() {
 
             <p className="section-sub">Choose how you&#39;d like to pay</p>
 
-            {walletPaymentRequest && isValid && cart.length > 0 && total > 0 && (
-              <div className="wallet-checkout">
-                <PaymentRequestButtonElement
-                  options={{
-                    paymentRequest: walletPaymentRequest,
-                    style: {
-                      paymentRequestButton: {
-                        type: "buy",
-                        theme: "dark",
-                        height: "48px",
+            {walletPaymentRequest &&
+              isValid &&
+              cart.length > 0 &&
+              total > 0 && (
+                <div className="wallet-checkout">
+                  <PaymentRequestButtonElement
+                    options={{
+                      paymentRequest: walletPaymentRequest,
+                      style: {
+                        paymentRequestButton: {
+                          type: "buy",
+                          theme: "dark",
+                          height: "48px",
+                        },
                       },
-                    },
-                  }}
-                />
-                <div className="wallet-divider">or pay by card</div>
-              </div>
-            )}
+                    }}
+                  />
+                  <div className="wallet-divider">or pay by card</div>
+                </div>
+              )}
 
             <div className="payment-options">
               {paymentOptions.map((opt) => (
@@ -1967,98 +1929,71 @@ export default function CheckoutPage() {
         <div className="co-summary">
           <p className="summary-label">Order Summary</p>
 
-          {cart.length > 0 && (
-            <p className="summary-event">{cart[0].eventName}</p>
-          )}
+          {/* Order rows grouped by event */}
+          {(() => {
+            const grouped = cart.reduce<Record<string, typeof cart>>(
+              (acc, item) => {
+                if (!acc[item.eventId]) acc[item.eventId] = [];
+                acc[item.eventId].push(item);
+                return acc;
+              },
+              {},
+            );
 
-          {/* Coupon input */}
-
-          {!appliedCoupon ? (
-            <>
-              <div className="co-coupon-row">
-                <input
-                  className="co-coupon-input"
-                  value={couponInput}
-                  onChange={(e) => {
-                    setCouponInput(e.target.value.toUpperCase());
-
-                    setCouponError(false);
-                  }}
-                  placeholder="PROMO CODE"
-                  onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
-                />
-
-                <button className="co-coupon-btn" onClick={applyCoupon}>
-                  <Tag
-                    size={11}
-                    style={{ display: "inline", marginRight: 3 }}
-                  />
-                  Apply
-                </button>
-              </div>
-
-              {couponError && (
-                <div className="coupon-msg coupon-invalid">
-                  <X size={12} /> Invalid code
+            return Object.entries(grouped).map(([eventId, items]) => {
+              const coupon = appliedCouponsMap[eventId];
+              const eventDiscount = coupon
+                ? items.reduce(
+                    (a, i) =>
+                      a + i.price * i.quantity * (coupon.percentage / 100),
+                    0,
+                  )
+                : 0;
+              return (
+                <div key={eventId}>
+                  <p className="summary-event">{items[0].eventName}</p>
+                  {coupon && (
+                    <div
+                      className="coupon-msg coupon-valid"
+                      style={{ marginBottom: 8 }}
+                    >
+                      <CheckCircle size={12} />
+                      <span>
+                        <strong>{coupon.name}</strong> — {coupon.percentage}%
+                        off
+                      </span>
+                    </div>
+                  )}
+                  {items.map((item) => (
+                    <div
+                      key={`${item.eventId}-${item.tierId}`}
+                      className="summary-row"
+                    >
+                      <span>
+                        {item.tierName} × {item.quantity}
+                      </span>
+                      <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                  {coupon && (
+                    <div className="summary-row discount">
+                      <span>Promo ({coupon.name})</span>
+                      <span>-${eventDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </>
-          ) : (
-            <div
-              className="coupon-msg coupon-valid"
-              style={{ marginBottom: 12 }}
-            >
-              <CheckCircle size={13} />
-
-              <span>
-                <strong>{appliedCoupon.name}</strong> —{" "}
-                {appliedCoupon.percentage}% off
-              </span>
-
-              <button
-                className="coupon-clear"
-                onClick={() => {
-                  setAppliedCoupon(null);
-
-                  setCouponInput("");
-                }}
-              >
-                <X size={13} />
-              </button>
-            </div>
-          )}
+              );
+            });
+          })()}
 
           <div style={{ display: "flex", flexDirection: "column" }}>
-            {cart.map((item) => (
-              <div
-                key={`${item.eventId}-${item.tierId}`}
-                className="summary-row"
-              >
-                <span>
-                  {item.tierName} × {item.quantity}
-                </span>
-
-                <span>${(item.price * item.quantity).toFixed(2)}</span>
-              </div>
-            ))}
-
-            {appliedCoupon && (
-              <div className="summary-row discount">
-                <span>Promo</span>
-
-                <span>-${discount.toFixed(2)}</span>
-              </div>
-            )}
-
             <div className="summary-row">
               <span>Subtotal</span>
-
               <span>${taxable.toFixed(2)}</span>
             </div>
 
             <div className="summary-row">
               <span>HST (13%)</span>
-
               <span>${tax.toFixed(2)}</span>
             </div>
           </div>
@@ -2096,4 +2031,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-

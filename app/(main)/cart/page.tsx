@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,14 +18,10 @@ import {
 interface CartItem {
   eventId: string;
   eventName: string;
-  eventDate: string;
-  eventTime: string;
-  venue: string;
   tierId: string;
   tierName: string;
   price: number;
   quantity: number;
-  coupons: string[]; // Array of coupon codes that apply to this event
 }
 
 interface Coupon {
@@ -33,6 +29,12 @@ interface Coupon {
   name: string;
   percentage: number;
   active: boolean;
+}
+
+interface Event {
+  _id: string;
+  name: string;
+  coupons: string[]; // coupon codes valid for this event
 }
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
@@ -48,7 +50,6 @@ const CSS = `
     font-family: 'DM Sans', sans-serif;
   }
 
-  /* Header */
   .cart-header {
     padding: 48px 48px 0;
     max-width: 1100px;
@@ -68,7 +69,6 @@ const CSS = `
   }
   .cart-page-sub { font-size: 14px; color: #555; }
 
-  /* Layout */
   .cart-layout {
     display: grid;
     grid-template-columns: 1fr 360px;
@@ -83,7 +83,6 @@ const CSS = `
     .cart-header { padding: 32px 24px 0; }
   }
 
-  /* Items */
   .cart-items { display: flex; flex-direction: column; gap: 1px; background: #1e1e1e; border-radius: 12px; overflow: hidden; border: 1px solid #1e1e1e; }
 
   .cart-item {
@@ -131,7 +130,43 @@ const CSS = `
   }
   .delete-btn:hover { background: rgba(244,63,94,0.1); border-color: rgba(244,63,94,0.3); color: #f43f5e; }
 
-  /* Empty state */
+  /* Per-event coupon strip */
+  .event-coupon-strip {
+    background: #111;
+    border-top: 1px solid #1e1e1e;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .coupon-input-row { display: flex; gap: 8px; flex: 1; min-width: 200px; }
+  .coupon-input {
+    flex: 1;
+    background: #1a1a1a !important; border: 1px solid #2a2a2a !important;
+    color: #f2f2f2 !important; border-radius: 6px !important;
+    padding: 8px 12px !important; font-size: 12px !important;
+    font-family: 'DM Sans', sans-serif !important; outline: none;
+    letter-spacing: 0.06em; text-transform: uppercase; width: 100%;
+    transition: border-color 0.15s;
+  }
+  .coupon-input:focus { border-color: #e53e3e !important; }
+  .coupon-btn {
+    padding: 8px 14px; background: #1e1e1e; border: 1px solid #2a2a2a;
+    border-radius: 6px; color: #aaa; font-size: 12px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .coupon-btn:hover { background: #2a2a2a; color: #f2f2f2; }
+  .coupon-msg {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px;
+  }
+  .coupon-valid { color: #38a169; }
+  .coupon-invalid { color: #e53e3e; }
+  .coupon-clear { background: none; border: none; cursor: pointer; color: #555; padding: 0; display: flex; }
+  .coupon-clear:hover { color: #aaa; }
+
   .cart-empty {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 80px 24px; text-align: center; gap: 16px;
@@ -153,13 +188,11 @@ const CSS = `
   }
   .cart-empty-link:hover { background: #c53030; }
 
-  /* Section label */
   .section-label {
     font-size: 10px; font-weight: 700; letter-spacing: 0.2em;
     text-transform: uppercase; color: #e53e3e; margin-bottom: 14px;
   }
 
-  /* Summary panel */
   .cart-summary {
     background: #111;
     border: 1px solid #1e1e1e;
@@ -177,6 +210,7 @@ const CSS = `
   }
   .summary-row:last-child { border-bottom: none; }
   .summary-row.discount { color: #38a169; }
+  .summary-row.event-name { color: #444; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding-top: 12px; }
   .summary-divider { height: 1px; background: #2a2a2a; margin: 12px 0; }
   .summary-total {
     display: flex; justify-content: space-between; align-items: baseline;
@@ -185,36 +219,6 @@ const CSS = `
   .summary-total-label { font-size: 14px; color: #777; }
   .summary-total-val { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: #f2f2f2; }
 
-  /* Coupon */
-  .coupon-wrap { margin-bottom: 24px; }
-  .coupon-input-row { display: flex; gap: 8px; }
-  .coupon-input {
-    flex: 1;
-    background: #1a1a1a !important; border: 1px solid #2a2a2a !important;
-    color: #f2f2f2 !important; border-radius: 6px !important;
-    padding: 10px 12px !important; font-size: 13px !important;
-    font-family: 'DM Sans', sans-serif !important; outline: none;
-    letter-spacing: 0.06em; text-transform: uppercase; width: 100%;
-    transition: border-color 0.15s;
-  }
-  .coupon-input:focus { border-color: #e53e3e !important; }
-  .coupon-btn {
-    padding: 10px 16px; background: #1e1e1e; border: 1px solid #2a2a2a;
-    border-radius: 6px; color: #aaa; font-size: 13px; font-weight: 500;
-    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .coupon-btn:hover { background: #2a2a2a; color: #f2f2f2; }
-  .coupon-msg {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 12px; margin-top: 8px;
-  }
-  .coupon-valid { color: #38a169; }
-  .coupon-invalid { color: #e53e3e; }
-  .coupon-clear { background: none; border: none; cursor: pointer; color: #555; padding: 0; display: flex; }
-  .coupon-clear:hover { color: #aaa; }
-
-  /* Checkout btn */
   .checkout-btn {
     display: flex; align-items: center; justify-content: center;
     gap: 10px; width: 100%;
@@ -234,41 +238,71 @@ const CSS = `
   }
 `;
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const TAX_RATE = 0.13;
 
+// ─── Per-event coupon state ───────────────────────────────────────────────────
+
+interface EventCouponState {
+  input: string;
+  applied: Coupon | null;
+  error: boolean;
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function CartPage() {
   const router = useRouter();
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [couponInput, setCouponInput] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
-  const [couponError, setCouponError] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const stored = localStorage.getItem("sax-cart");
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [allCoupons, setAllCoupons] = useState<Coupon[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
 
-  const loadCart = useCallback(() => {
-    const stored = JSON.parse(localStorage.getItem("sax-cart") || "[]");
-    setCart(stored);
-    const storedCoupon = localStorage.getItem("sax-applied-coupon");
-    if (storedCoupon) {
-      setAppliedCoupon(JSON.parse(storedCoupon));
-    }
-  }, []);
+  // Per-event coupon state: { [eventId]: { input, applied, error } }
+  const [couponStates, setCouponStates] = useState<
+    Record<string, EventCouponState>
+  >({});
 
   useEffect(() => {
-    const initializeCart = async () => {
-      loadCart();
-      try {
-        const response = await fetch("/api/coupons");
-        const data: Coupon[] = await response.json();
-        setCoupons(data.filter((c) => c.active));
-      } catch {
-        // Silently handle error
-      }
-    };
+    Promise.all([
+      fetch("/api/coupons").then((r) => r.json()),
+      fetch("/api/events").then((r) => r.json()),
+    ])
+      .then(([couponsData, eventsData]: [Coupon[], Event[]]) => {
+        const activeCoupons = couponsData.filter((c) => c.active);
+        setAllCoupons(activeCoupons);
+        setEvents(eventsData);
 
-    initializeCart();
-  }, [loadCart]);
+        // Seed per-event coupon states from what was applied on the ticket pages
+        const storedCoupons = localStorage.getItem("sax-applied-coupons");
+        if (storedCoupons) {
+          const savedMap: Record<string, Coupon> = JSON.parse(storedCoupons);
+          const initial: Record<string, EventCouponState> = {};
+          for (const [eventId, coupon] of Object.entries(savedMap)) {
+            const ev = eventsData.find((e: Event) => e._id === eventId);
+            // Only restore if the coupon is still active and valid for this event
+            if (
+              ev &&
+              ev.coupons.includes(coupon.name) &&
+              activeCoupons.some((c) => c.name === coupon.name)
+            ) {
+              initial[eventId] = {
+                input: coupon.name,
+                applied: coupon,
+                error: false,
+              };
+            }
+          }
+          if (Object.keys(initial).length > 0) {
+            setCouponStates(initial);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const saveCart = (updated: CartItem[]) => {
     setCart(updated);
@@ -290,59 +324,93 @@ export default function CartPage() {
     saveCart(cart.filter((_, i) => i !== index));
   };
 
-  const applyCoupon = () => {
-    const code = couponInput.trim().toUpperCase();
-    const found = coupons.find((c) => c.name === code);
+  // ── Per-event coupon handlers ─────────────────────────────────────────────
+
+  const getCouponState = (eventId: string): EventCouponState =>
+    couponStates[eventId] ?? { input: "", applied: null, error: false };
+
+  const setCouponState = (
+    eventId: string,
+    patch: Partial<EventCouponState>,
+  ) => {
+    setCouponStates((prev) => ({
+      ...prev,
+      [eventId]: { ...getCouponState(eventId), ...patch },
+    }));
+  };
+
+  const applyCoupon = (eventId: string) => {
+    const state = getCouponState(eventId);
+    const code = state.input.trim().toUpperCase();
+
+    // Find the event so we can check which coupons are valid for it
+    const event = events.find((e) => e._id === eventId);
+    const validCouponNames = event?.coupons ?? [];
+
+    // The coupon must be active AND assigned to this event
+    const found = allCoupons.find(
+      (c) => c.name === code && validCouponNames.includes(c.name),
+    );
+
     if (found) {
-      setAppliedCoupon(found);
-      localStorage.setItem("sax-applied-coupon", JSON.stringify(found));
-      setCouponError(false);
+      setCouponState(eventId, { applied: found, error: false });
     } else {
-      setAppliedCoupon(null);
-      localStorage.removeItem("sax-applied-coupon");
-      setCouponError(true);
+      setCouponState(eventId, { applied: null, error: true });
     }
   };
 
-  const clearCoupon = () => {
-    setAppliedCoupon(null);
-    localStorage.removeItem("sax-applied-coupon");
-    setCouponInput("");
-    setCouponError(false);
+  const clearCoupon = (eventId: string) => {
+    setCouponState(eventId, { applied: null, input: "", error: false });
   };
 
-  // Group by event
+  // ── Grouped cart + totals ─────────────────────────────────────────────────
+
   const grouped = cart.reduce<Record<string, CartItem[]>>((acc, item) => {
     if (!acc[item.eventId]) acc[item.eventId] = [];
     acc[item.eventId].push(item);
     return acc;
   }, {});
 
-  const subtotal = cart.reduce(
-    (acc, item) => acc + item.price * item.quantity,
-    0,
-  );
-  const discount = appliedCoupon
-    ? cart.reduce((acc, item) => {
-        // Only apply discount to items whose event has this coupon in its coupons array
-        const isEligible =
-          item.coupons && item.coupons.includes(appliedCoupon.name);
-        if (isEligible) {
-          return (
-            acc + item.price * item.quantity * (appliedCoupon.percentage / 100)
-          );
-        }
-        return acc;
-      }, 0)
-    : 0;
-  const taxable = subtotal - discount;
+  // Per-event subtotals and discounts
+  const eventTotals = Object.entries(grouped).map(([eventId, items]) => {
+    const eventSubtotal = items.reduce((a, i) => a + i.price * i.quantity, 0);
+    const coupon = getCouponState(eventId).applied;
+    const eventDiscount = coupon
+      ? eventSubtotal * (coupon.percentage / 100)
+      : 0;
+    return {
+      eventId,
+      eventName: items[0].eventName,
+      eventSubtotal,
+      eventDiscount,
+      coupon,
+      items,
+    };
+  });
+
+  const subtotal = eventTotals.reduce((a, e) => a + e.eventSubtotal, 0);
+  const totalDiscount = eventTotals.reduce((a, e) => a + e.eventDiscount, 0);
+  const taxable = subtotal - totalDiscount;
   const tax = taxable * TAX_RATE;
   const total = taxable + tax;
   const totalItems = cart.reduce((a, b) => a + b.quantity, 0);
 
   const handleCheckout = () => {
-    const checkoutData = { cart, appliedCoupon };
-    sessionStorage.setItem("sax-checkout", JSON.stringify(checkoutData));
+    // Build per-event coupon map from current states
+    const appliedCouponsMap: Record<string, Coupon> = {};
+    for (const [eventId, state] of Object.entries(couponStates)) {
+      if (state.applied) appliedCouponsMap[eventId] = state.applied;
+    }
+    // Persist to localStorage so checkout can read it even after navigation
+    localStorage.setItem(
+      "sax-applied-coupons",
+      JSON.stringify(appliedCouponsMap),
+    );
+    // Also pass full cart + coupons via sessionStorage
+    sessionStorage.setItem(
+      "sax-checkout",
+      JSON.stringify({ cart, appliedCouponsMap }),
+    );
     router.push("/checkout");
   };
 
@@ -396,126 +464,168 @@ export default function CartPage() {
         </div>
       ) : (
         <div className="cart-layout">
-          {/* Items */}
+          {/* Items grouped by event */}
           <div>
-            {Object.entries(grouped).map(([, items]) => (
-              <div key={items[0].eventId} style={{ marginBottom: 24 }}>
-                <p className="section-label">{items[0].eventName}</p>
-                <div className="cart-items">
-                  {items.map((item) => {
-                    const globalIndex = cart.findIndex(
-                      (c) =>
-                        c.eventId === item.eventId && c.tierId === item.tierId,
-                    );
-                    return (
-                      <div key={item.tierId} className="cart-item">
-                        <div>
-                          <p className="ci-event">{item.eventName}</p>
-                          <p className="ci-tier">{item.tierName}</p>
-                          <p className="ci-price-each">
-                            ${item.price.toFixed(2)} CAD each
-                          </p>
-                        </div>
-                        <div className="ci-right">
-                          <div className="qty-control">
+            {eventTotals.map(({ eventId, eventName, coupon, items }) => {
+              const ev = events.find((e) => e._id === eventId);
+              const hasValidCoupons =
+                ev &&
+                ev.coupons.length > 0 &&
+                allCoupons.some((c) => ev.coupons.includes(c.name));
+              const state = getCouponState(eventId);
+
+              return (
+                <div key={eventId} style={{ marginBottom: 28 }}>
+                  <p className="section-label">{eventName}</p>
+
+                  <div className="cart-items">
+                    {items.map((item) => {
+                      const globalIndex = cart.findIndex(
+                        (c) =>
+                          c.eventId === item.eventId &&
+                          c.tierId === item.tierId,
+                      );
+                      return (
+                        <div key={item.tierId} className="cart-item">
+                          <div>
+                            <p className="ci-event">{item.eventName}</p>
+                            <p className="ci-tier">{item.tierName}</p>
+                            <p className="ci-price-each">
+                              ${item.price.toFixed(2)} CAD each
+                            </p>
+                          </div>
+                          <div className="ci-right">
+                            <div className="qty-control">
+                              <button
+                                className="qty-btn red"
+                                onClick={() => updateQty(globalIndex, -1)}
+                              >
+                                <Minus size={13} />
+                              </button>
+                              <div className="qty-val">{item.quantity}</div>
+                              <button
+                                className="qty-btn"
+                                onClick={() => updateQty(globalIndex, 1)}
+                              >
+                                <Plus size={13} />
+                              </button>
+                            </div>
+                            <div className="ci-subtotal">
+                              ${(item.price * item.quantity).toFixed(2)}
+                            </div>
                             <button
-                              className="qty-btn red"
-                              onClick={() => updateQty(globalIndex, -1)}
+                              className="delete-btn"
+                              onClick={() => removeItem(globalIndex)}
                             >
-                              <Minus size={13} />
-                            </button>
-                            <div className="qty-val">{item.quantity}</div>
-                            <button
-                              className="qty-btn"
-                              onClick={() => updateQty(globalIndex, 1)}
-                            >
-                              <Plus size={13} />
+                              <Trash2 size={13} />
                             </button>
                           </div>
-                          <div className="ci-subtotal">
-                            ${(item.price * item.quantity).toFixed(2)}
-                          </div>
-                          <button
-                            className="delete-btn"
-                            onClick={() => removeItem(globalIndex)}
-                          >
-                            <Trash2 size={13} />
-                          </button>
                         </div>
+                      );
+                    })}
+
+                    {/* Coupon strip — only shown if this event has valid coupons */}
+                    {hasValidCoupons && (
+                      <div className="event-coupon-strip">
+                        {coupon ? (
+                          <div className="coupon-msg coupon-valid">
+                            <CheckCircle size={13} />
+                            <span>
+                              <strong>{coupon.name}</strong> —{" "}
+                              {coupon.percentage}% off this event
+                            </span>
+                            <button
+                              className="coupon-clear"
+                              onClick={() => clearCoupon(eventId)}
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="coupon-input-row">
+                              <input
+                                className="coupon-input"
+                                value={state.input}
+                                onChange={(e) =>
+                                  setCouponState(eventId, {
+                                    input: e.target.value.toUpperCase(),
+                                    error: false,
+                                  })
+                                }
+                                placeholder="PROMO CODE"
+                                onKeyDown={(e) =>
+                                  e.key === "Enter" && applyCoupon(eventId)
+                                }
+                              />
+                              <button
+                                className="coupon-btn"
+                                onClick={() => applyCoupon(eventId)}
+                              >
+                                <Tag
+                                  size={12}
+                                  style={{ display: "inline", marginRight: 4 }}
+                                />
+                                Apply
+                              </button>
+                            </div>
+                            {state.error && (
+                              <div className="coupon-msg coupon-invalid">
+                                <X size={12} /> Invalid or not valid for this
+                                event
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Summary */}
           <div className="cart-summary">
             <p className="section-label">Order Summary</p>
 
-            {/* Coupon */}
-            <div className="coupon-wrap">
-              {appliedCoupon ? (
-                <div className="coupon-msg coupon-valid">
-                  <CheckCircle size={13} />
-                  <span>
-                    <strong>{appliedCoupon.name}</strong> —{" "}
-                    {appliedCoupon.percentage}% off
-                  </span>
-                  <button className="coupon-clear" onClick={clearCoupon}>
-                    <X size={13} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="coupon-input-row">
-                    <input
-                      className="coupon-input"
-                      value={couponInput}
-                      onChange={(e) => {
-                        setCouponInput(e.target.value.toUpperCase());
-                        setCouponError(false);
-                      }}
-                      placeholder="PROMO CODE"
-                      onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
-                    />
-                    <button className="coupon-btn" onClick={applyCoupon}>
-                      <Tag
-                        size={13}
-                        style={{ display: "inline", marginRight: 4 }}
-                      />
-                      Apply
-                    </button>
-                  </div>
-                  {couponError && (
-                    <div className="coupon-msg coupon-invalid">
-                      <X size={12} /> Invalid or expired code
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
             <div className="summary-rows">
-              {cart.map((item) => (
-                <div
-                  key={`${item.eventId}-${item.tierId}`}
-                  className="summary-row"
-                >
-                  <span>
-                    {item.tierName} × {item.quantity}
-                  </span>
-                  <span>${(item.price * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-              {appliedCoupon && (
-                <div className="summary-row discount">
-                  <span>Promo ({appliedCoupon.name})</span>
-                  <span>-${discount.toFixed(2)}</span>
-                </div>
+              {eventTotals.map(
+                ({ eventId, eventName, eventDiscount, coupon, items }) => (
+                  <div key={eventId}>
+                    {/* Event name sub-header */}
+                    <div className="summary-row event-name">
+                      <span>{eventName}</span>
+                    </div>
+                    {items.map((item) => (
+                      <div
+                        key={`${item.eventId}-${item.tierId}`}
+                        className="summary-row"
+                      >
+                        <span>
+                          {item.tierName} × {item.quantity}
+                        </span>
+                        <span>${(item.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    {coupon && (
+                      <div className="summary-row discount">
+                        <span>Promo ({coupon.name})</span>
+                        <span>−${eventDiscount.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+                ),
               )}
-              <div className="summary-row">
+
+              <div
+                className="summary-row"
+                style={{
+                  marginTop: 8,
+                  borderTop: "1px solid #2a2a2a",
+                  paddingTop: 10,
+                }}
+              >
                 <span>Subtotal</span>
                 <span>${taxable.toFixed(2)}</span>
               </div>
