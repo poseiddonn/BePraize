@@ -254,10 +254,7 @@ interface EventCouponState {
 
 export default function CartPage() {
   const router = useRouter();
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const stored = localStorage.getItem("sax-cart");
-    return stored ? JSON.parse(stored) : [];
-  });
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [allCoupons, setAllCoupons] = useState<Coupon[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
 
@@ -275,6 +272,11 @@ export default function CartPage() {
         const activeCoupons = couponsData.filter((c) => c.active);
         setAllCoupons(activeCoupons);
         setEvents(eventsData);
+
+        const storedCart = localStorage.getItem("sax-cart");
+        if (storedCart) {
+          setCart(JSON.parse(storedCart));
+        }
 
         // Seed per-event coupon states from what was applied on the ticket pages
         const storedCoupons = localStorage.getItem("sax-applied-coupons");

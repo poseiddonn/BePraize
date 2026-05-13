@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { connectDB } from "@/app/lib/mongodb";
+import { OrderModel } from "@/app/lib/models/Order";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
@@ -54,10 +56,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     const metadata = paymentIntent.metadata || {};
     const orderId = metadata.orderId || paymentIntent.id;
 
-    // Note: Ticket sending is currently handled by the frontend checkout page
-    // The frontend calls /api/send-tickets after confirming payment
-    // This webhook serves as a backup and for monitoring purposes
-    console.log(`Payment succeeded for order: ${orderId}`);
+    await updateOrderStatus(orderId, "success", paymentIntent.id);
   } catch {}
 }
 
@@ -66,19 +65,50 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
     const metadata = paymentIntent.metadata || {};
     const orderId = metadata.orderId || paymentIntent.id;
 
-    // TODO: Update order status to failed in database
-    // TODO: Send failure notification email to buyer
-    console.log(`Payment failed for order: ${orderId}`);
+    await updateOrderStatus(orderId, "failed", paymentIntent.id);
   } catch {}
 }
 
 async function handleRefund(charge: Stripe.Charge) {
   try {
     const metadata = charge.metadata || {};
-    const orderId = metadata.orderId || charge.id;
+    let orderId = metadata.orderId || "";
 
-    // TODO: Update order status to refunded in database
-    // TODO: Send refund notification email to buyer
-    console.log(`Refund processed for order: ${orderId}`);
+    if (!orderId && typeof charge.payment_intent === "string") {
+      await connectDB();
+      const order = await OrderModel.findOne({
+        paymentIntentId: charge.payment_intent,
+      }).lean();
+      orderId = order?.orderId || "";
+    }
+
+    if (orderId) {
+      await updateOrderStatus(
+        orderId,
+        "refunded",
+        typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : undefined,
+      );
+    }
   } catch {}
+}
+
+async function updateOrderStatus(
+  orderId: string,
+  status: "success" | "failed" | "refunded",
+  paymentIntentId?: string,
+) {
+  await connectDB();
+
+  await OrderModel.findOneAndUpdate(
+    { orderId },
+    {
+      $set: {
+        status,
+        ...(paymentIntentId ? { paymentIntentId } : {}),
+      },
+    },
+    { upsert: false },
+  );
 }

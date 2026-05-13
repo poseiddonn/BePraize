@@ -19,6 +19,7 @@ const OrderSchema = new Schema(
     checkIns: { type: Schema.Types.Mixed, default: [] },
     mailOption: { type: String, default: "both" },
     paymentMethod: { type: String, default: "card" },
+    paymentIntentId: { type: String, default: "" },
     appliedCoupon: { type: Schema.Types.Mixed, default: null },
   },
   { timestamps: true },

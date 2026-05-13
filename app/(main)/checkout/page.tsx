@@ -1324,7 +1324,7 @@ export default function CheckoutPage() {
           total: total,
           mailOption: order.mailOption,
           appliedCoupon: order.appliedCoupon,
-          paymentMethod: order.paymentMethod,
+          paymentMethod: walletPaymentMethodId ? "wallet" : order.paymentMethod,
           paymentIntentId,
           createdAt: new Date().toISOString(),
         }),

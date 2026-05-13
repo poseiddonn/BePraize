@@ -7,6 +7,28 @@ import { createTicketDeliveryToken } from "@/app/lib/tickets/ticketDelivery";
 
 // Define TransactionStatus type to match admin interface
 type TransactionStatus = "success" | "failed" | "pending" | "refunded";
+type PaymentMethod = "card" | "wallet" | "apple_pay" | "google_pay";
+
+const SUPPORTED_PAYMENT_METHODS = new Set<PaymentMethod>([
+  "card",
+  "wallet",
+  "apple_pay",
+  "google_pay",
+]);
+
+function statusFromPaymentIntent(
+  paymentIntent: Stripe.PaymentIntent,
+): TransactionStatus {
+  if (paymentIntent.status === "succeeded") return "success";
+  if (
+    paymentIntent.status === "canceled" ||
+    paymentIntent.status === "requires_payment_method"
+  ) {
+    return "failed";
+  }
+
+  return "pending";
+}
 
 // GET: Fetch all orders
 export async function GET() {
@@ -109,21 +131,19 @@ export async function POST(request: NextRequest) {
     // If no amount, treat as order creation/update
     await connectDB();
 
-    if (body.paymentMethod && body.paymentMethod !== "card") {
+    const paymentMethod = body.paymentMethod as PaymentMethod | undefined;
+    if (paymentMethod && !SUPPORTED_PAYMENT_METHODS.has(paymentMethod)) {
       return NextResponse.json(
         { error: "Unsupported payment method" },
         { status: 400 },
       );
     }
 
-    if (body.paymentMethod === "card") {
-      if (!body.paymentIntentId) {
-        return NextResponse.json(
-          { error: "Missing payment confirmation" },
-          { status: 400 },
-        );
-      }
+    const orderTotal = Number(body.total || 0);
+    const requiresPayment = orderTotal > 0;
+    let verifiedPaymentStatus: TransactionStatus | null = null;
 
+    if (body.paymentIntentId) {
       const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
       if (!stripeSecretKey) {
         return NextResponse.json(
@@ -136,9 +156,10 @@ export async function POST(request: NextRequest) {
       const paymentIntent = await stripe.paymentIntents.retrieve(
         body.paymentIntentId,
       );
+      verifiedPaymentStatus = statusFromPaymentIntent(paymentIntent);
 
       if (
-        paymentIntent.status !== "succeeded" ||
+        verifiedPaymentStatus !== "success" ||
         paymentIntent.metadata?.orderId !== body.orderId
       ) {
         return NextResponse.json(
@@ -146,6 +167,11 @@ export async function POST(request: NextRequest) {
           { status: 402 },
         );
       }
+    } else if (requiresPayment) {
+      return NextResponse.json(
+        { error: "Missing payment confirmation" },
+        { status: 400 },
+      );
     }
 
     const existingOrder = body.orderId
@@ -175,8 +201,8 @@ export async function POST(request: NextRequest) {
       ...body,
       buyerName: body.buyer?.name || body.buyerName || "",
       buyerEmail: body.buyer?.email || body.buyerEmail || "",
-      status:
-        body.paymentMethod === "card" ? "success" : body.status || "pending",
+      paymentMethod: paymentMethod || "card",
+      status: verifiedPaymentStatus || body.status || "success",
     };
 
     // Remove the nested buyer object since we've flattened it
