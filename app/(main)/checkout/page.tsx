@@ -1064,7 +1064,12 @@ export default function CheckoutPage() {
     walletPaymentMethodId?: string,
     walletEvent?: PaymentRequestPaymentMethodEvent,
   ) => {
+    const failWalletPayment = () => {
+      if (walletEvent) walletEvent.complete("fail");
+    };
+
     if (!stripe || !elements) {
+      failWalletPayment();
       alert("Payment system not loaded. Please refresh the page.");
 
       return;
@@ -1080,6 +1085,7 @@ export default function CheckoutPage() {
       !buyer.province ||
       !buyer.postalCode
     ) {
+      failWalletPayment();
       alert("Please fill in all required buyer information.");
 
       return;
@@ -1089,6 +1095,7 @@ export default function CheckoutPage() {
     const postalCodePattern =
       POSTAL_CODE_PATTERNS[buyer.country as keyof typeof POSTAL_CODE_PATTERNS];
     if (!postalCodePattern.test(buyer.postalCode)) {
+      failWalletPayment();
       alert(
         `Invalid ${buyer.country === "Canada" ? "postal code" : "zip code"} format.`,
       );
@@ -1097,6 +1104,7 @@ export default function CheckoutPage() {
 
     // Validate phone format
     if (!PHONE_PATTERN.test(buyer.phone)) {
+      failWalletPayment();
       setBuyerPhoneError(
         "Please enter a valid phone number (e.g., +1 (555) 000-0000)",
       );
@@ -1110,6 +1118,7 @@ export default function CheckoutPage() {
       (attendee) => attendee.name || attendee.email || attendee.phone,
     );
     if (!hasAttendeeInfo) {
+      failWalletPayment();
       setAttendeeError(
         "Please fill in at least one attendee field (name, email, or phone).",
       );
@@ -1462,7 +1471,7 @@ export default function CheckoutPage() {
   });
 
   useEffect(() => {
-    if (!stripe || !isValid || cart.length === 0 || total <= 0) {
+    if (!stripe || cart.length === 0 || total <= 0) {
       return;
     }
 
@@ -1520,7 +1529,7 @@ export default function CheckoutPage() {
       active = false;
       paymentRequest.off("paymentmethod", handleWalletPayment);
     };
-  }, [stripe, isValid, cart.length, total, taxable, discount, tax]);
+  }, [stripe, cart.length, total, taxable, discount, tax]);
   const paymentOptions = [
     {
       id: "card" as const,
@@ -1887,10 +1896,7 @@ export default function CheckoutPage() {
 
             <p className="section-sub">Choose how you&#39;d like to pay</p>
 
-            {walletPaymentRequest &&
-              isValid &&
-              cart.length > 0 &&
-              total > 0 && (
+            {walletPaymentRequest && cart.length > 0 && total > 0 && (
                 <div className="wallet-checkout">
                   <PaymentRequestButtonElement
                     options={{
