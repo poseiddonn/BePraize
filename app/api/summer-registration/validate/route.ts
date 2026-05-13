@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
       message: "Name is available",
     });
   } catch (error) {
-    console.error("Summer registration validation error:", error);
     return NextResponse.json(
       {
         error:

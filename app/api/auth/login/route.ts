@@ -9,6 +9,10 @@ import { hashPassword, isPasswordHash, verifyPassword } from "@/app/lib/auth/pas
 
 const SESSION_MAX_AGE = 60 * 60 * 24;
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json();
@@ -27,14 +31,15 @@ export async function POST(request: NextRequest) {
     }
 
     const adminsCollection = db.collection("admins");
+    const usernamePattern = new RegExp(`^${escapeRegex(username)}$`, "i");
     let admin = await adminsCollection.findOne({
-      username: { $regex: new RegExp(`^${username}$`, "i") },
+      username: { $regex: usernamePattern },
     });
     const isAdminAccount = Boolean(admin);
 
     if (!admin) {
       admin = await UserModel.findOne({
-        username: { $regex: new RegExp(`^${username}$`, "i") },
+        username: { $regex: usernamePattern },
       });
     }
 

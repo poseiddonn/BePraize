@@ -46,13 +46,17 @@ export interface SendTicketsBody {
   }[];
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function cleanTicketId(
   ticketId: string | undefined,
   orderId: string,
   usedTicketIds: Set<string>,
 ) {
   const raw = ticketId?.trim();
-  const expectedPattern = new RegExp(`^${orderId}-\\d{4}$`);
+  const expectedPattern = new RegExp(`^${escapeRegex(orderId)}-\\d{4}$`);
 
   if (raw && expectedPattern.test(raw) && !usedTicketIds.has(raw)) {
     usedTicketIds.add(raw);

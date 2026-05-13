@@ -141,6 +141,7 @@ export async function POST(request: NextRequest) {
 
     const orderTotal = Number(body.total || 0);
     const requiresPayment = orderTotal > 0;
+    const expectedAmount = Math.round(orderTotal * 100);
     let verifiedPaymentStatus: TransactionStatus | null = null;
 
     if (body.paymentIntentId) {
@@ -160,7 +161,9 @@ export async function POST(request: NextRequest) {
 
       if (
         verifiedPaymentStatus !== "success" ||
-        paymentIntent.metadata?.orderId !== body.orderId
+        paymentIntent.metadata?.orderId !== body.orderId ||
+        paymentIntent.currency !== "cad" ||
+        paymentIntent.amount_received !== expectedAmount
       ) {
         return NextResponse.json(
           { error: "Payment has not been confirmed" },

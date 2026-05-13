@@ -3,9 +3,18 @@ import Stripe from "stripe";
 import { connectDB } from "@/app/lib/mongodb";
 import { OrderModel } from "@/app/lib/models/Order";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
-
 export async function POST(request: NextRequest) {
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!stripeSecretKey || !webhookSecret) {
+    return NextResponse.json(
+      { error: "Stripe webhook is not configured" },
+      { status: 500 },
+    );
+  }
+
+  const stripe = new Stripe(stripeSecretKey);
   const body = await request.text();
   const signature = request.headers.get("stripe-signature") || "";
 
@@ -15,7 +24,7 @@ export async function POST(request: NextRequest) {
     event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET || "",
+      webhookSecret,
     );
   } catch {
     return NextResponse.json(
@@ -51,47 +60,40 @@ export async function POST(request: NextRequest) {
 }
 
 async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
-  try {
-    // Extract order data from payment intent metadata
-    const metadata = paymentIntent.metadata || {};
-    const orderId = metadata.orderId || paymentIntent.id;
+  const metadata = paymentIntent.metadata || {};
+  const orderId = metadata.orderId || paymentIntent.id;
 
-    await updateOrderStatus(orderId, "success", paymentIntent.id);
-  } catch {}
+  await updateOrderStatus(orderId, "success", paymentIntent.id);
 }
 
 async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
-  try {
-    const metadata = paymentIntent.metadata || {};
-    const orderId = metadata.orderId || paymentIntent.id;
+  const metadata = paymentIntent.metadata || {};
+  const orderId = metadata.orderId || paymentIntent.id;
 
-    await updateOrderStatus(orderId, "failed", paymentIntent.id);
-  } catch {}
+  await updateOrderStatus(orderId, "failed", paymentIntent.id);
 }
 
 async function handleRefund(charge: Stripe.Charge) {
-  try {
-    const metadata = charge.metadata || {};
-    let orderId = metadata.orderId || "";
+  const metadata = charge.metadata || {};
+  let orderId = metadata.orderId || "";
 
-    if (!orderId && typeof charge.payment_intent === "string") {
-      await connectDB();
-      const order = await OrderModel.findOne({
-        paymentIntentId: charge.payment_intent,
-      }).lean();
-      orderId = order?.orderId || "";
-    }
+  if (!orderId && typeof charge.payment_intent === "string") {
+    await connectDB();
+    const order = await OrderModel.findOne({
+      paymentIntentId: charge.payment_intent,
+    }).lean();
+    orderId = order?.orderId || "";
+  }
 
-    if (orderId) {
-      await updateOrderStatus(
-        orderId,
-        "refunded",
-        typeof charge.payment_intent === "string"
-          ? charge.payment_intent
-          : undefined,
-      );
-    }
-  } catch {}
+  if (orderId) {
+    await updateOrderStatus(
+      orderId,
+      "refunded",
+      typeof charge.payment_intent === "string"
+        ? charge.payment_intent
+        : undefined,
+    );
+  }
 }
 
 async function updateOrderStatus(

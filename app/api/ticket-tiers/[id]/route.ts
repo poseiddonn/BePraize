@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isValidObjectId } from "mongoose";
 import { connectDB } from "@/app/lib/mongodb";
 import { TicketTierModel } from "@/app/lib/models/TicketTier";
 
@@ -9,6 +10,13 @@ interface Params {
 export async function PUT(req: Request, { params }: Params) {
   try {
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: "Invalid ticket tier ID" },
+        { status: 400 },
+      );
+    }
+
     await connectDB();
     const body = await req.json();
     const updated = await TicketTierModel.findByIdAndUpdate(
@@ -33,6 +41,13 @@ export async function PUT(req: Request, { params }: Params) {
 export async function DELETE(_req: Request, { params }: Params) {
   try {
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: "Invalid ticket tier ID" },
+        { status: 400 },
+      );
+    }
+
     await connectDB();
     const deleted = await TicketTierModel.findByIdAndDelete(id).lean();
     if (!deleted)

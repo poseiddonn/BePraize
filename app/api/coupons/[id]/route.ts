@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isValidObjectId } from "mongoose";
 import { connectDB } from "@/app/lib/mongodb";
 import { CouponModel } from "@/app/lib/models/Coupon";
 import { EventModel } from "@/app/lib/models/Event";
@@ -11,6 +12,10 @@ interface Params {
 export async function PUT(req: Request, { params }: Params) {
   try {
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: "Invalid coupon ID" }, { status: 400 });
+    }
+
     await connectDB();
     const body = await req.json();
 
@@ -53,6 +58,10 @@ export async function PUT(req: Request, { params }: Params) {
 export async function PATCH(_req: Request, { params }: Params) {
   try {
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: "Invalid coupon ID" }, { status: 400 });
+    }
+
     await connectDB();
     const coupon = await CouponModel.findById(id);
     if (!coupon) {
@@ -72,6 +81,10 @@ export async function PATCH(_req: Request, { params }: Params) {
 export async function DELETE(_req: Request, { params }: Params) {
   try {
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: "Invalid coupon ID" }, { status: 400 });
+    }
+
     await connectDB();
 
     // Fetch name before deleting so we can clean up events

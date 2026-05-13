@@ -44,7 +44,7 @@ export async function GET(
       paymentMethod: order.paymentMethod || "card",
       appliedCoupon: order.appliedCoupon,
       total: order.total || 0,
-      status: order.status || "success",
+      status: order.status || "pending",
       createdAt: order.createdAt || new Date().toISOString(),
     };
 
@@ -69,16 +69,13 @@ export async function PATCH(
     const body = await request.json();
     const { status } = body;
 
-    if (
-      status &&
-      !["success", "failed", "pending", "refunded"].includes(status)
-    ) {
+    if (!status || !["success", "failed", "pending", "refunded"].includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
     const updatedOrder = await OrderModel.findOneAndUpdate(
       { orderId },
-      { $set: { status: status || "success" } },
+      { $set: { status } },
       { returnDocument: "after", runValidators: true },
     ).lean();
 

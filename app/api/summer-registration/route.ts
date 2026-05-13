@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
 import { connectDB } from "@/app/lib/mongodb";
 import { SummerRegistrantModel } from "@/app/lib/models/SummerRegistrant";
 
@@ -16,16 +17,47 @@ export async function POST(request: NextRequest) {
       !email ||
       !phone ||
       !parentPhone ||
-      !selectedInstruments ||
+      !Array.isArray(selectedInstruments) ||
       selectedInstruments.length === 0
     ) {
-      console.error("Validation failed for summer registration");
       return NextResponse.json(
         {
           error:
             "Name, email, phone, parent phone, and at least one instrument selection are required",
         },
         { status: 400 },
+      );
+    }
+
+    if (!paymentId) {
+      return NextResponse.json(
+        { error: "Missing payment confirmation" },
+        { status: 400 },
+      );
+    }
+
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+      return NextResponse.json(
+        { error: "Stripe configuration error" },
+        { status: 500 },
+      );
+    }
+
+    const stripe = new Stripe(stripeSecretKey);
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentId);
+
+    if (
+      paymentIntent.status !== "succeeded" ||
+      paymentIntent.metadata?.type !== "summer-registration" ||
+      paymentIntent.metadata?.name !== name ||
+      paymentIntent.metadata?.phone !== phone ||
+      paymentIntent.currency !== "cad" ||
+      paymentIntent.amount_received < 5000
+    ) {
+      return NextResponse.json(
+        { error: "Payment has not been confirmed" },
+        { status: 402 },
       );
     }
 
@@ -39,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Check if registrant with this name already exists
     const existingRegistrant = await SummerRegistrantModel.findOne({
-      name: name.trim(),
+      $or: [{ name: name.trim() }, { paymentId }],
     });
 
     if (existingRegistrant) {
@@ -72,7 +104,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Summer registration error:", error);
     return NextResponse.json(
       {
         error:

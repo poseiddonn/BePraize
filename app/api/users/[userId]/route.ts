@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isValidObjectId } from "mongoose";
 import { connectDB } from "@/app/lib/mongodb";
 import { UserModel } from "@/app/lib/models/User";
 
@@ -10,6 +11,9 @@ export async function GET(
     await connectDB();
 
     const { userId } = await params;
+    if (!isValidObjectId(userId)) {
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+    }
 
     const user = await UserModel.findById(userId).select(
       "username email role permissions isActive lastLogin createdAt updatedAt",
@@ -45,6 +49,10 @@ export async function PUT(
     await connectDB();
 
     const { userId } = await params;
+    if (!isValidObjectId(userId)) {
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+    }
+
     const body = await request.json();
     const { username, email, permissions, isActive } = body;
 
@@ -95,6 +103,9 @@ export async function DELETE(
     await connectDB();
 
     const { userId } = await params;
+    if (!isValidObjectId(userId)) {
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+    }
 
     const user = await UserModel.findByIdAndDelete(userId);
 

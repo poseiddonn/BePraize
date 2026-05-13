@@ -10,6 +10,10 @@ function normalizePermissions(value: unknown) {
   return Array.isArray(value) ? value.filter((p) => typeof p === "string") : [];
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await verifyAdminSessionToken(
@@ -43,7 +47,11 @@ export async function GET(request: NextRequest) {
     } else if (session.accountType === "admin") {
       const adminsCollection = db.collection("admins");
       admin = await adminsCollection.findOne(
-        { username: { $regex: new RegExp(`^${session.username}$`, "i") } },
+        {
+          username: {
+            $regex: new RegExp(`^${escapeRegex(session.username)}$`, "i"),
+          },
+        },
         { projection: { username: 1, email: 1 } },
       );
     }

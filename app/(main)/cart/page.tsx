@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { parseJson } from "@/app/lib/safeJson";
 import {
   Minus,
   Plus,
@@ -275,13 +276,16 @@ export default function CartPage() {
 
         const storedCart = localStorage.getItem("sax-cart");
         if (storedCart) {
-          setCart(JSON.parse(storedCart));
+          setCart(parseJson<CartItem[]>(storedCart, []));
         }
 
         // Seed per-event coupon states from what was applied on the ticket pages
         const storedCoupons = localStorage.getItem("sax-applied-coupons");
         if (storedCoupons) {
-          const savedMap: Record<string, Coupon> = JSON.parse(storedCoupons);
+          const savedMap = parseJson<Record<string, Coupon>>(
+            storedCoupons,
+            {},
+          );
           const initial: Record<string, EventCouponState> = {};
           for (const [eventId, coupon] of Object.entries(savedMap)) {
             const ev = eventsData.find((e: Event) => e._id === eventId);

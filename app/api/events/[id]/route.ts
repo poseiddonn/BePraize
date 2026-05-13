@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isValidObjectId } from "mongoose";
 import { connectDB } from "@/app/lib/mongodb";
 import { EventModel } from "@/app/lib/models/Event";
 
@@ -9,6 +10,10 @@ interface Params {
 export async function PUT(req: Request, { params }: Params) {
   try {
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: "Invalid event ID" }, { status: 400 });
+    }
+
     await connectDB();
     const body = await req.json();
     const updated = await EventModel.findByIdAndUpdate(
@@ -30,6 +35,10 @@ export async function PUT(req: Request, { params }: Params) {
 export async function DELETE(_req: Request, { params }: Params) {
   try {
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: "Invalid event ID" }, { status: 400 });
+    }
+
     await connectDB();
     const deleted = await EventModel.findByIdAndDelete(id).lean();
     if (!deleted)

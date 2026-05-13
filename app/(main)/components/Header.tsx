@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { parseJson } from "@/app/lib/safeJson";
 
 interface Event {
   _id: string;
@@ -44,7 +45,10 @@ export default function Header() {
 
   useEffect(() => {
     const updateCartCount = () => {
-      const cart = JSON.parse(localStorage.getItem("sax-cart") || "[]");
+      const cart = parseJson<Array<{ quantity: number }>>(
+        localStorage.getItem("sax-cart"),
+        [],
+      );
       const count = cart.reduce(
         (total: number, item: { quantity: number }) => total + item.quantity,
         0,

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 
 import { useRouter } from "next/navigation";
+import { parseJson } from "@/app/lib/safeJson";
 
 import {
   CheckCircle,
@@ -1014,18 +1015,26 @@ export default function CheckoutPage() {
       // Try sessionStorage first (set by cart handleCheckout)
       const stored = sessionStorage.getItem("sax-checkout");
       if (stored) {
-        const data = JSON.parse(stored);
+        const data = parseJson<{
+          cart?: CartItem[];
+          appliedCouponsMap?: Record<string, Coupon>;
+        }>(stored, {});
         setCart(data.cart || []);
         if (data.appliedCouponsMap) {
           setAppliedCouponsMap(data.appliedCouponsMap);
         }
       } else {
         // Fallback: read cart + per-event coupons from localStorage
-        const cartStored = JSON.parse(localStorage.getItem("sax-cart") || "[]");
+        const cartStored = parseJson<CartItem[]>(
+          localStorage.getItem("sax-cart"),
+          [],
+        );
         setCart(cartStored);
         const storedCoupons = localStorage.getItem("sax-applied-coupons");
         if (storedCoupons) {
-          setAppliedCouponsMap(JSON.parse(storedCoupons));
+          setAppliedCouponsMap(
+            parseJson<Record<string, Coupon>>(storedCoupons, {}),
+          );
         }
       }
     };

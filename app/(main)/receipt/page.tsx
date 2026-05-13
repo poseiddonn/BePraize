@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { CheckCircle, Download, Printer, Mail, ArrowRight } from "lucide-react";
+import { parseJson } from "@/app/lib/safeJson";
 
 interface CartItem {
   eventId: string;
@@ -204,7 +205,7 @@ export default function ReceiptPage() {
   useEffect(() => {
     const loadOrder = () => {
       const stored = sessionStorage.getItem("sax-order");
-      if (stored) setOrder(JSON.parse(stored));
+      if (stored) setOrder(parseJson<Order | null>(stored, null));
     };
 
     loadOrder();

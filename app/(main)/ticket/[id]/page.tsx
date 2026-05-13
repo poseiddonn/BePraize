@@ -2,6 +2,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { parseJson } from "@/app/lib/safeJson";
 import Link from "next/link";
 import {
   MapPin,
@@ -474,7 +475,10 @@ export default function TicketPage() {
         // Load stored coupon from per-event localStorage map
         const storedCoupons = localStorage.getItem("sax-applied-coupons");
         if (storedCoupons) {
-          const couponMap: Record<string, Coupon> = JSON.parse(storedCoupons);
+          const couponMap = parseJson<Record<string, Coupon>>(
+            storedCoupons,
+            {},
+          );
           const coupon = couponMap[ev._id];
           if (coupon && ev.coupons.includes(coupon.name)) {
             setAppliedCoupon(coupon);
@@ -498,7 +502,10 @@ export default function TicketPage() {
       localStorage.setItem(
         "sax-applied-coupons",
         JSON.stringify({
-          ...JSON.parse(localStorage.getItem("sax-applied-coupons") ?? "{}"),
+          ...parseJson<Record<string, Coupon>>(
+            localStorage.getItem("sax-applied-coupons"),
+            {},
+          ),
           [event._id]: found,
         }),
       );
@@ -507,8 +514,9 @@ export default function TicketPage() {
       setAppliedCoupon(null);
       setCouponError(true);
       // Remove only this event's coupon from the map
-      const couponMap = JSON.parse(
-        localStorage.getItem("sax-applied-coupons") ?? "{}",
+      const couponMap = parseJson<Record<string, Coupon>>(
+        localStorage.getItem("sax-applied-coupons"),
+        {},
       );
       delete couponMap[event._id];
       localStorage.setItem("sax-applied-coupons", JSON.stringify(couponMap));
@@ -520,8 +528,9 @@ export default function TicketPage() {
     setAppliedCoupon(null);
     setCouponInput("");
     setCouponError(false);
-    const couponMap = JSON.parse(
-      localStorage.getItem("sax-applied-coupons") ?? "{}",
+    const couponMap = parseJson<Record<string, Coupon>>(
+      localStorage.getItem("sax-applied-coupons"),
+      {},
     );
     delete couponMap[event._id];
     localStorage.setItem("sax-applied-coupons", JSON.stringify(couponMap));
@@ -576,8 +585,9 @@ export default function TicketPage() {
       }));
 
     // Persist to localStorage (replace with Zustand/Context cart store later)
-    const existing: CartItem[] = JSON.parse(
-      localStorage.getItem("sax-cart") ?? "[]",
+    const existing = parseJson<CartItem[]>(
+      localStorage.getItem("sax-cart"),
+      [],
     );
     const merged = [...existing];
     for (const item of newItems) {

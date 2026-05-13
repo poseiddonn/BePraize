@@ -3,6 +3,10 @@ import { connectDB } from "@/app/lib/mongodb";
 import { UserModel } from "@/app/lib/models/User";
 import { hashPassword } from "@/app/lib/auth/password";
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function GET() {
   try {
     await connectDB();
@@ -37,9 +41,10 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { username, email, password, permissions } = body;
+    const normalizedUsername = typeof username === "string" ? username.trim() : "";
 
     // Validate input
-    if (!username || !password) {
+    if (!normalizedUsername || !password) {
       return NextResponse.json(
         { error: "Username and password are required" },
         { status: 400 },
@@ -47,7 +52,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const existingUser = await UserModel.findOne({ username });
+    const existingUser = await UserModel.findOne({
+      username: {
+        $regex: new RegExp(`^${escapeRegex(normalizedUsername)}$`, "i"),
+      },
+    });
 
     if (existingUser) {
       return NextResponse.json(
@@ -58,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     // Create new user
     const user = new UserModel({
-      username,
+      username: normalizedUsername,
       email: email || null, // Handle optional email
       password: hashPassword(password),
       role: "user",
