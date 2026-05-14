@@ -256,6 +256,7 @@ interface EventCouponState {
 export default function CartPage() {
   const router = useRouter();
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartLoaded, setCartLoaded] = useState(false);
   const [allCoupons, setAllCoupons] = useState<Coupon[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
 
@@ -265,6 +266,12 @@ export default function CartPage() {
   >({});
 
   useEffect(() => {
+    window.requestAnimationFrame(() => {
+      const storedCart = localStorage.getItem("sax-cart");
+      setCart(parseJson<CartItem[]>(storedCart, []));
+      setCartLoaded(true);
+    });
+
     Promise.all([
       fetch("/api/coupons").then((r) => r.json()),
       fetch("/api/events").then((r) => r.json()),
@@ -273,11 +280,6 @@ export default function CartPage() {
         const activeCoupons = couponsData.filter((c) => c.active);
         setAllCoupons(activeCoupons);
         setEvents(eventsData);
-
-        const storedCart = localStorage.getItem("sax-cart");
-        if (storedCart) {
-          setCart(parseJson<CartItem[]>(storedCart, []));
-        }
 
         // Seed per-event coupon states from what was applied on the ticket pages
         const storedCoupons = localStorage.getItem("sax-applied-coupons");
@@ -452,7 +454,16 @@ export default function CartPage() {
         </p>
       </div>
 
-      {cart.length === 0 ? (
+      {!cartLoaded ? (
+        <div
+          className="cart-empty"
+          style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 48px" }}
+        >
+          <div className="cart-empty-icon">
+            <ShoppingBag size={28} />
+          </div>
+        </div>
+      ) : cart.length === 0 ? (
         <div
           className="cart-empty"
           style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 48px" }}
