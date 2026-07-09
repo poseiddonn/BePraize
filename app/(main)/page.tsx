@@ -325,6 +325,8 @@ export default function HomePage() {
 
   useEffect(() => {
     // Scroll reveal observer
+    if (typeof window === 'undefined') return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -339,7 +341,7 @@ export default function HomePage() {
     document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
-  }, []);
+  }, [galleryPage]);
 
   useEffect(() => {
     async function fetchEvents() {
