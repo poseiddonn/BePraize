@@ -514,15 +514,24 @@ export default function CartPage() {
                           <div className="ci-right">
                             <div className="qty-control">
                               <button
+                                type="button"
                                 className="qty-btn red"
                                 onClick={() => updateQty(globalIndex, -1)}
+                                aria-label={`Decrease ${item.tierName} quantity`}
                               >
                                 <Minus size={13} />
                               </button>
-                              <div className="qty-val">{item.quantity}</div>
+                              <div
+                                className="qty-val"
+                                aria-label={`${item.tierName} quantity`}
+                              >
+                                {item.quantity}
+                              </div>
                               <button
+                                type="button"
                                 className="qty-btn"
                                 onClick={() => updateQty(globalIndex, 1)}
+                                aria-label={`Increase ${item.tierName} quantity`}
                               >
                                 <Plus size={13} />
                               </button>
@@ -531,8 +540,10 @@ export default function CartPage() {
                               ${(item.price * item.quantity).toFixed(2)}
                             </div>
                             <button
+                              type="button"
                               className="delete-btn"
                               onClick={() => removeItem(globalIndex)}
+                              aria-label={`Remove ${item.tierName} from cart`}
                             >
                               <Trash2 size={13} />
                             </button>
@@ -552,8 +563,10 @@ export default function CartPage() {
                               {coupon.percentage}% off this event
                             </span>
                             <button
+                              type="button"
                               className="coupon-clear"
                               onClick={() => clearCoupon(eventId)}
+                              aria-label={`Remove ${coupon.name} promo code`}
                             >
                               <X size={13} />
                             </button>
@@ -563,6 +576,7 @@ export default function CartPage() {
                             <div className="coupon-input-row">
                               <input
                                 className="coupon-input"
+                                aria-label={`Promo code for ${eventName}`}
                                 value={state.input}
                                 onChange={(e) =>
                                   setCouponState(eventId, {
@@ -576,6 +590,7 @@ export default function CartPage() {
                                 }
                               />
                               <button
+                                type="button"
                                 className="coupon-btn"
                                 onClick={() => applyCoupon(eventId)}
                               >
@@ -658,7 +673,7 @@ export default function CartPage() {
               <span className="summary-total-val">${total.toFixed(2)} CAD</span>
             </div>
 
-            <button className="checkout-btn" onClick={handleCheckout}>
+            <button type="button" className="checkout-btn" onClick={handleCheckout}>
               Proceed to Checkout <ArrowRight size={16} />
             </button>
             <p className="checkout-note">

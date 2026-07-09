@@ -406,6 +406,8 @@ const CSS = `
     display: flex; align-items: center; justify-content: space-between;
 
     padding: 14px 18px; cursor: pointer; user-select: none;
+    width: 100%; border: none; background: transparent; color: inherit;
+    font: inherit; text-align: left;
 
     transition: background 0.12s;
 
@@ -473,6 +475,7 @@ const CSS = `
     border: 1px solid #2a2a2a; background: #1a1a1a;
 
     cursor: pointer; transition: all 0.15s;
+    width: 100%; color: inherit; font: inherit; text-align: left;
 
   }
 
@@ -687,6 +690,7 @@ function AttendeeBlock({
 }) {
   const [open, setOpen] = useState(index === 0);
   const [sameAsBuyer, setSameAsBuyer] = useState(false);
+  const fieldPrefix = `attendee-${index}`;
 
   const set = (k: keyof AttendeeInfo, v: string) =>
     onChange({ ...value, [k]: v });
@@ -707,7 +711,13 @@ function AttendeeBlock({
 
   return (
     <div className="attendee-block">
-      <div className="attendee-header" onClick={() => setOpen(!open)}>
+      <button
+        type="button"
+        className="attendee-header"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-controls={`${fieldPrefix}-body`}
+      >
         <div className="attendee-header-left">
           <span className="attendee-tier-badge">{tierName}</span>
 
@@ -721,10 +731,10 @@ function AttendeeBlock({
         ) : (
           <ChevronDown size={15} color="#555" />
         )}
-      </div>
+      </button>
 
       {open && (
-        <div className="attendee-body">
+        <div className="attendee-body" id={`${fieldPrefix}-body`}>
           <div className="form-group">
             <label className="checkbox-label">
               <input
@@ -750,12 +760,15 @@ function AttendeeBlock({
           )}
 
           <div className="form-group">
-            <label className="form-label">Full Name</label>
+            <label className="form-label" htmlFor={`${fieldPrefix}-name`}>
+              Attendee full name
+            </label>
 
             <div className="input-wrap">
               <User size={14} className="input-icon" />
 
               <input
+                id={`${fieldPrefix}-name`}
                 className="form-input"
                 value={value.name}
                 onChange={(e) => set("name", e.target.value)}
@@ -767,12 +780,15 @@ function AttendeeBlock({
 
           <div className="form-grid-2">
             <div className="form-group">
-              <label className="form-label">Email</label>
+              <label className="form-label" htmlFor={`${fieldPrefix}-email`}>
+                Email address
+              </label>
 
               <div className="input-wrap">
                 <Mail size={14} className="input-icon" />
 
                 <input
+                  id={`${fieldPrefix}-email`}
                   className="form-input"
                   type="email"
                   value={value.email}
@@ -784,12 +800,15 @@ function AttendeeBlock({
             </div>
 
             <div className="form-group">
-              <label className="form-label">Phone</label>
+              <label className="form-label" htmlFor={`${fieldPrefix}-phone`}>
+                Phone number
+              </label>
 
               <div className="input-wrap">
                 <Phone size={14} className="input-icon" />
 
                 <input
+                  id={`${fieldPrefix}-phone`}
                   className="form-input"
                   type="tel"
                   value={value.phone}
@@ -1580,12 +1599,13 @@ export default function CheckoutPage() {
             </p>
 
             <div className="form-group">
-              <label className="form-label">Full Name</label>
+              <label className="form-label" htmlFor="buyer-name">Full Name</label>
 
               <div className="input-wrap">
                 <User size={14} className="input-icon" />
 
                 <input
+                  id="buyer-name"
                   className="form-input"
                   value={buyer.name}
                   onChange={(e) => setBuyer({ ...buyer, name: e.target.value })}
@@ -1596,12 +1616,13 @@ export default function CheckoutPage() {
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">Email</label>
+                <label className="form-label" htmlFor="buyer-email">Email</label>
 
                 <div className="input-wrap">
                   <Mail size={14} className="input-icon" />
 
                   <input
+                    id="buyer-email"
                     className="form-input"
                     type="email"
                     value={buyer.email}
@@ -1614,12 +1635,13 @@ export default function CheckoutPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Phone</label>
+                <label className="form-label" htmlFor="buyer-phone">Phone</label>
 
                 <div className="input-wrap">
                   <Phone size={14} className="input-icon" />
 
                   <input
+                    id="buyer-phone"
                     className={`form-input${
                       buyer.phone && !PHONE_PATTERN.test(buyer.phone)
                         ? " error"
@@ -1657,9 +1679,10 @@ export default function CheckoutPage() {
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">Country</label>
+                <label className="form-label" htmlFor="buyer-country">Country</label>
 
                 <select
+                  id="buyer-country"
                   className="form-select"
                   value={buyer.country}
                   onChange={(e) =>
@@ -1680,11 +1703,12 @@ export default function CheckoutPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">
+                <label className="form-label" htmlFor="buyer-province">
                   {buyer.country === "Canada" ? "Province" : "State"}
                 </label>
 
                 <select
+                  id="buyer-province"
                   className="form-select"
                   value={buyer.province}
                   onChange={(e) =>
@@ -1707,12 +1731,13 @@ export default function CheckoutPage() {
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">City</label>
+                <label className="form-label" htmlFor="buyer-city">City</label>
 
                 <div className="input-wrap">
                   <MapPin size={14} className="input-icon" />
 
                   <input
+                    id="buyer-city"
                     className="form-input"
                     value={buyer.city}
                     onChange={(e) =>
@@ -1724,11 +1749,12 @@ export default function CheckoutPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">
+                <label className="form-label" htmlFor="buyer-postal-code">
                   {buyer.country === "Canada" ? "Postal Code" : "Zip Code"}
                 </label>
 
                 <input
+                  id="buyer-postal-code"
                   className={`form-input${
                     buyer.postalCode &&
                     !POSTAL_CODE_PATTERNS[
@@ -1873,9 +1899,15 @@ export default function CheckoutPage() {
                   key={opt.id}
                   className={`mail-option${mailOption === opt.id ? " selected" : ""}`}
                   onClick={() => setMailOption(opt.id)}
-                  role="button"
+                  role="radio"
+                  aria-checked={mailOption === opt.id}
                   tabIndex={0}
-                  onKeyDown={(e) => e.key === "Enter" && setMailOption(opt.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setMailOption(opt.id);
+                    }
+                  }}
                 >
                   <div className="mail-option-icon">{opt.icon}</div>
 
@@ -1916,10 +1948,12 @@ export default function CheckoutPage() {
 
             <div className="payment-options">
               {paymentOptions.map((opt) => (
-                <div
+                <button
+                  type="button"
                   key={opt.id}
                   className={`payment-option${paymentMethod === opt.id ? " selected" : ""}`}
                   onClick={() => setPaymentMethod(opt.id)}
+                  aria-pressed={paymentMethod === opt.id}
                 >
                   <div className="payment-option-icon">{opt.icon}</div>
 
@@ -1930,7 +1964,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <div className="payment-radio" />
-                </div>
+                </button>
               ))}
             </div>
             {paymentMethod === "card" && (
